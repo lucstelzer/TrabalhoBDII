@@ -1,0 +1,4 @@
+#Arquivos para serem ignorados no repositório#
+#Não mexer nesse arquivo, por favor!!!! Ass.: Lucas#
+
+.env
