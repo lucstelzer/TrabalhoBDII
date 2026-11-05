@@ -2,3 +2,4 @@
 #Não mexer nesse arquivo, por favor!!!! Ass.: Lucas#
 
 .env
+node_modules/

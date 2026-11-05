@@ -1,0 +1,27 @@
+{
+  "name": "trabalhobdii",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucstelzer/TrabalhoBDII.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lucstelzer/TrabalhoBDII/issues"
+  },
+  "homepage": "https://github.com/lucstelzer/TrabalhoBDII#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "mssql": "^12.7.14"
+  }
+}

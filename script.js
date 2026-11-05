@@ -5,20 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCalculoPedido();
   setupModais();
   lucide.createIcons();
+  showRegioes();
 });
 
 function initNavegacao() {
-  const titulos = {
-    "clientes": ["Carteira de Clientes", "Gestão de compradores corporativos e residenciais"],
-    "vendedores": ["Quadro Comercial", "Representantes exclusivos por divisão territorial"],
-    "pedidos": ["Emissão de Pedido", "Formulação e cálculo de vendas com proteção regional"],
-    "rel-vendedor": ["Relatório 1: Vendas por Representante", "Totalização por vendedor com filtro textual"],
-    "rel-regiao": ["Relatório 2: Desempenho Territorial", "Panorama geográfico de titulares e carteira de clientes"],
-    "rel-comissoes": ["Relatório 3: Extrato Analítico de Comissões", "Cálculo detalhado de remuneração por venda"],
-    "rel-produtos": ["Relatório 4: Desempenho por Equipamento", "Volume e faturamento por modelo de ar condicionado"],
-    "rel-consolidado": ["Relatório 5: Faturamento Consolidado", "Livro de registro cronológico de vendas formalizadas"]
-  };
-
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -102,3 +92,24 @@ function setupModais() {
     });
   }
 }
+
+async function showRegioes(){
+  const selectElement = document.getElementById('rel2-select-regiao');
+
+  try{
+    const resposta = await fetch(/api/regioes);
+    const regioes = await resposta.json; 
+
+    selectElement.innerHTML = '<option value="">Selecione uma região...</option>';
+
+    regioes.forEach(regiao => {
+      const option = document.createElement('option');
+      option.value = regiao.id_regiao;
+      option.textContent = regiao.nome_regiao;
+      selectElement.appendChild(option);
+    });
+  }catch(err){
+    console.error('Erro ao carregar regiões no front-end:', err.message);
+  }
+}
+
