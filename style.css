@@ -1,0 +1,558 @@
+/* ========================================================
+   Design System - Central de Ar Ltda.
+   Cores: Azul Petróleo (#0f172a), Ciano (#0284c7), Fundo (#f8fafc)
+   ======================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background-color: #0f172a;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.brand {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.brand-info h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-info p {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-section-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+  padding: 12px 10px 6px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.nav-btn.active {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background-color: #1e293b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+}
+
+.user-meta strong {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.user-meta span {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Conteúdo Principal */
+.main-content {
+  margin-left: 280px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  background-color: #ffffff;
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.topbar h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.badge-policy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.content-body {
+  padding: 32px;
+  flex: 1;
+}
+
+/* Alternância de Abas/Páginas */
+.page-view {
+  display: none;
+}
+
+.page-view.active {
+  display: block;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Painéis */
+.panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.panel-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: #0369a1;
+}
+
+.btn-success {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background-color: #047857;
+}
+
+.btn-secondary {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+
+/* Campos de Busca & Inputs */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  width: 340px;
+  max-width: 100%;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: #1e293b;
+  width: 100%;
+}
+
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-inline select {
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background-color: #ffffff;
+  font-size: 0.85rem;
+}
+
+/* Tabelas */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.data-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.data-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+.empty-cell {
+  text-align: center;
+  color: #94a3b8;
+  padding: 36px !important;
+}
+
+/* Cards de Vendedores */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.rep-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  background: #ffffff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rep-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.rep-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rep-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.rep-tag {
+  display: inline-block;
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Formulários */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #0284c7;
+}
+
+.form-group input[readonly] {
+  background-color: #f8fafc;
+  cursor: not-allowed;
+}
+
+.form-group-triple {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.order-summary-box {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.summary-item span {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.summary-item strong {
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
+/* Destaque Regional (Relatório 2) */
+.card-highlight {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.card-highlight h4 {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.section-subtitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+/* KPIs (Relatório 3) */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.kpi-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.text-accent {
+  color: #0284c7;
+}
+
+/* Modais */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90%;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
