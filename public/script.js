@@ -93,23 +93,95 @@ function setupModais() {
   }
 }
 
-async function showRegioes(){
+async function showRegioes() {
   const selectElement = document.getElementById('rel2-select-regiao');
-
-  try{
-    const resposta = await fetch(/api/regioes);
-    const regioes = await resposta.json; 
+  try {
+    const resposta = await fetch('/api/regioes');
+    const regioes = await resposta.json();
 
     selectElement.innerHTML = '<option value="">Selecione uma região...</option>';
 
     regioes.forEach(regiao => {
       const option = document.createElement('option');
-      option.value = regiao.id_regiao;
+      option.value = regiao.nome_regiao;
       option.textContent = regiao.nome_regiao;
       selectElement.appendChild(option);
+
+      selectElement.addEventListener('change', (event) => {
+        const nomeSelecionado = event.target.value;
+        if (nomeSelecionado) {
+          totalPorRegiao(nomeSelecionado);
+        }
+      });
     });
-  }catch(err){
+  } catch (err) {
     console.error('Erro ao carregar regiões no front-end:', err.message);
   }
 }
+
+const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL'
+});
+
+function renderizarInformacoes(dados) {
+  const tbody = document.getElementById('tbody-rel2-clientes');
+  if (!tbody) {
+    console.error('Elemento #tbody-rel2-clientes não encontrado.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!dados || dados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center;">Nenhuma venda encontrada para a região selecionada.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  dados.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const regiao = item.nome_regiao;
+    const vendedor = item.nome_vendedor;
+    const totalBruto = item.total_faturado;
+
+    const valorNumerico = Number(totalBruto);
+    const totalFormatado = !isNaN(valorNumerico)
+      ? formatadorMoeda.format(valorNumerico)
+      : totalBruto;
+
+    tr.innerHTML = `
+      <td>${regiao}</td>
+      <td>${vendedor}</td>
+      <td>${totalFormatado}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function totalPorRegiao(nomeRegiao) {
+
+  try {
+    const rota = `/api/regioes/${encodeURIComponent(nomeRegiao)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.stauts}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes(dados);
+  } catch (err) {
+    console.error('Falha oa obter dados:', err.message);
+  }
+}
+
+
 
