@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@
   <!-- Ícones Lucide -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
 
   <!-- Barra Lateral (Sidebar) -->
@@ -40,7 +42,7 @@
         <i data-lucide="user-check"></i> 1. Total vendido por região
       </button>
       <button class="nav-btn" data-page="rel-clientes">
-        <i data-lucide="map-pin"></i> 2. Total vendido para cada cliente 
+        <i data-lucide="map-pin"></i> 2. Total vendido para cada cliente
       </button>
       <button class="nav-btn" data-page="rel-vendedor">
         <i data-lucide="receipt-text"></i> 3. Total vendido por vendedor
@@ -67,7 +69,7 @@
 
   <!-- Conteúdo Principal -->
   <main class="main-content">
-    
+
     <!-- Topbar -->
     <header class="topbar">
       <div>
@@ -139,7 +141,7 @@
               <p class="subtitle">O representante comercial é preenchido automaticamente pela região do cliente</p>
             </div>
           </div>
-          
+
           <form id="form-pedido" class="form-grid">
             <div class="form-group">
               <label for="ped-cliente">Cliente Comprador *</label>
@@ -192,12 +194,12 @@
         </div>
       </section>
 
-      <!-- RELATÓRIO 1: TOTAL POR VENDEDOR -->
+      <!-- RELATÓRIO 3: TOTAL POR VENDEDOR -->
       <section id="page-rel-vendedor" class="page-view">
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h3>Relatório 1: Vendas por Representante</h3>
+              <h3>Relatório 3: Vendas por Representante</h3>
               <p class="subtitle">Pesquise por qualquer trecho do nome do representante</p>
             </div>
             <div class="search-box">
@@ -224,7 +226,7 @@
         </div>
       </section>
 
-      <!-- RELATÓRIO 2: TOTAL POR REGIÃO E CLIENTES -->
+      <!-- RELATÓRIO 1: TOTAL POR REGIÃO -->
       <section id="page-rel-regiao" class="page-view">
         <div class="panel">
           <div class="panel-header">
@@ -233,8 +235,8 @@
               <p class="subtitle">Este relatório tem como objetivo mostrar o valor total vendido por região.</p>
             </div>
             <div class="form-inline">
-              <label for="rel2-select-regiao">Selecione a Região:</label>
-              <select id="rel2-select-regiao">
+              <label for="rel1-select-regiao">Selecione a Região:</label>
+              <select id="rel1-select-regiao">
                 <!-- Preenchido via JS -->
               </select>
             </div>
@@ -250,7 +252,7 @@
                   <th>Total Vendido (R$)</th>
                 </tr>
               </thead>
-              <tbody id="tbody-rel2-clientes">
+              <tbody id="tbody-rel1-regioes">
                 <!-- JS -->
               </tbody>
             </table>
@@ -258,12 +260,12 @@
         </div>
       </section>
 
-      <!-- RELATÓRIO 3: EXTRATO DE COMISSÕES -->
+      <!-- RELATÓRIO 6: EXTRATO DE COMISSÕES -->
       <section id="page-rel-comissoes" class="page-view">
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h3>Relatório 3: Extrato Individual de Comissões</h3>
+              <h3>Relatório 6: Extrato Individual de Comissões</h3>
               <p class="subtitle">Detalhamento item a item por pedido formalizado</p>
             </div>
             <div class="form-inline">
@@ -307,7 +309,7 @@
         </div>
       </section>
 
-      <!-- RELATÓRIO 4: PRODUTOS MAIS VENDIDOS -->
+      <!-- RELATÓRIO 5: TOTAL VENDIDO POR PRODUTO -->
       <section id="page-rel-produtos" class="page-view">
         <div class="panel">
           <div class="panel-header">
@@ -335,29 +337,32 @@
         </div>
       </section>
 
-      <!-- RELATÓRIO 5: FATURAMENTO CONSOLIDADO -->
-      <section id="page-rel-consolidado" class="page-view">
+      <!-- RELATÓRIO 2: TOTAL VENDIDO POR CLIENTE-->
+      <section id="page-rel-clientes" class="page-view">
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h3>Relatório 5: Faturamento Consolidado Geral</h3>
-              <p class="subtitle">Livro de registros de pedidos formalizados na empresa</p>
+              <h3>Relatório 2: Total vendido por cliente</h3>
+              <p class="subtitle">Este relatório tem como objetivo mostrar o valor total vendido por cliente.</p>
+            </div>
+            <div class="form-inline">
+              <label for="rel2-select-clientes">Selecione o cliente:</label>
+              <select id="rel2-select-clientes">
+                <!-- Preenchido via JS -->
+              </select>
             </div>
           </div>
+
+          <h4 class="section-subtitle">Total de vendas para cada cliente</h4>
           <div class="table-responsive">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Nº Pedido</th>
-                  <th>Data</th>
                   <th>Cliente</th>
-                  <th>Cidade / Região</th>
-                  <th>Representante</th>
-                  <th>Equipamento</th>
-                  <th>Valor Total (R$)</th>
+                  <th>Total Vendido para o cliente (R$)</th>
                 </tr>
               </thead>
-              <tbody id="tbody-rel5">
+              <tbody id="tbody-rel2-clientes">
                 <!-- JS -->
               </tbody>
             </table>
@@ -408,4 +413,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>

@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModais();
   lucide.createIcons();
   showRegioes();
+  showClientes();
 });
 
 function initNavegacao() {
@@ -21,7 +22,7 @@ function initNavegacao() {
         targetElement.classList.add("active");
       }
 
-      if (titulos[target]) {
+      if (typeof titulos !== "undefined" && titulos[target]) {
         document.getElementById("page-title").textContent = titulos[target][0];
         document.getElementById("page-subtitle").textContent = titulos[target][1];
       }
@@ -94,7 +95,7 @@ function setupModais() {
 }
 
 async function showRegioes() {
-  const selectElement = document.getElementById('rel2-select-regiao');
+  const selectElement = document.getElementById('rel1-select-regiao');
   try {
     const resposta = await fetch('/api/regioes');
     const regioes = await resposta.json();
@@ -106,28 +107,27 @@ async function showRegioes() {
       option.value = regiao.nome_regiao;
       option.textContent = regiao.nome_regiao;
       selectElement.appendChild(option);
-
-      selectElement.addEventListener('change', (event) => {
-        const nomeSelecionado = event.target.value;
-        if (nomeSelecionado) {
-          totalPorRegiao(nomeSelecionado);
-        }
-      });
+    });
+    selectElement.addEventListener('change', (event) => {
+      const nomeSelecionado = event.target.value;
+      if (nomeSelecionado) {
+        totalPorRegiao(nomeSelecionado);
+      }
     });
   } catch (err) {
     console.error('Erro ao carregar regiões no front-end:', err.message);
   }
 }
 
-const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
+const formatarMoeda = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL'
 });
 
 function renderizarInformacoes(dados) {
-  const tbody = document.getElementById('tbody-rel2-clientes');
+  const tbody = document.getElementById('tbody-rel1-regioes');
   if (!tbody) {
-    console.error('Elemento #tbody-rel2-clientes não encontrado.');
+    console.error('Elemento #tbody-rel1-regio-regioes não encontrado.');
     return;
   }
 
@@ -171,7 +171,7 @@ async function totalPorRegiao(nomeRegiao) {
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
-      throw new Error(`Erro na requisição: ${resposta.stauts}`);
+      throw new Error(`Erro na requisição: ${resposta.status}`);
     }
 
     const dados = await resposta.json();
@@ -183,5 +183,88 @@ async function totalPorRegiao(nomeRegiao) {
   }
 }
 
+async function showClientes() {
+  const selectElement = document.getElementById('rel2-select-clientes');
+  try {
+    const resposta = await fetch('/api/clientes');
+    const clientes = await resposta.json();
 
+    selectElement.innerHTML = '<option value="">Selecione um cliente...</option>';
 
+    clientes.forEach(cliente => {
+      const option = document.createElement('option');
+      option.value = cliente.nome_razao_social;
+      option.textContent = cliente.nome_razao_social;
+      selectElement.appendChild(option);
+    });
+    selectElement.addEventListener('change', (event) => {
+      const nomeSelecionado = event.target.value;
+      if (nomeSelecionado) {
+        totalPorCliente(nomeSelecionado);
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao carregar clientes no front-end:', err.message);
+  }
+}
+
+const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL'
+});
+
+function renderizarInformacoes2(clientes) {
+  const tbody = document.getElementById('tbody-rel2-clientes');
+  if (!tbody) {
+    console.error('Elemento #tbody-rel2-clientes não encontrado.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!clientes || clientes.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center;">Nenhuma venda encontrada para o cliente selecionada.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  clientes.forEach(cliente => {
+    const tr = document.createElement('tr');
+    const nomeCliente = cliente.nome_razao_social;
+    const montanteTotal = cliente.montante_total;
+
+    const valorNumerico = Number(montanteTotal);
+    const totalFormatado = !isNaN(valorNumerico)
+      ? formatadorMoeda.format(valorNumerico)
+      : montanteTotal;
+
+    tr.innerHTML = `
+      <td>${nomeCliente}</td>
+      <td>${totalFormatado}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function totalPorCliente(nomeCliente) {
+
+  try {
+    const rota = `/api/clientes/${encodeURIComponent(nomeCliente)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes2(dados);
+  } catch (err) {
+    console.error('Falha oa obter dados:', err.message);
+  }
+}
