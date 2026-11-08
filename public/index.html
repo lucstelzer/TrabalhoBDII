@@ -16,13 +16,16 @@
 <body>
 
   <!-- Barra Lateral (Sidebar) -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-icon"><i data-lucide="wind"></i></div>
       <div class="brand-info">
         <h1>Central de Ar</h1>
         <p>Sistemas Térmicos</p>
       </div>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Fechar menu">
+        <i data-lucide="x"></i>
+      </button>
     </div>
 
     <nav class="nav-menu">
@@ -67,11 +70,16 @@
     </div>
   </aside>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
   <!-- Conteúdo Principal -->
   <main class="main-content">
 
     <!-- Topbar -->
     <header class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
       <div>
         <h2 id="page-title">Carteira de Clientes</h2>
         <p id="page-subtitle" class="subtitle">Gestão de compradores corporativos e residenciais</p>
@@ -268,11 +276,9 @@
               <h3>Relatório 6: Extrato Individual de Comissões</h3>
               <p class="subtitle">Detalhamento item a item por pedido formalizado</p>
             </div>
-            <div class="form-inline">
-              <label for="rel3-select-vendedor">Representante:</label>
-              <select id="rel3-select-vendedor">
-                <!-- JS -->
-              </select>
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="rel3-busca" placeholder="Digite o nome do representante...">
             </div>
           </div>
 
@@ -291,13 +297,10 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Data Emissão</th>
-                  <th>Cliente</th>
+                  <th>Representante</th>
                   <th>Equipamento</th>
-                  <th>Qtd</th>
-                  <th>Preço Unit.</th>
-                  <th>Subtotal</th>
-                  <th>Alíquota</th>
+                  <th>Qtd. Pedidos</th>
+                  <th>Total Vendido (R$)</th>
                   <th>Comissão (R$)</th>
                 </tr>
               </thead>

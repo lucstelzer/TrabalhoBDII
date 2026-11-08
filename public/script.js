@@ -7,7 +7,62 @@ document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
   showRegioes();
   showClientes();
+  setupBuscaComissoes();
+  setupMenuMobile();
 });
+
+function setupMenuMobile() {
+  const sidebar = document.querySelector(".sidebar");
+  const btnMenu = document.getElementById("menu-toggle");
+  const btnClose = document.getElementById("sidebar-close");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  const fecharMenu = () => {
+    sidebar.classList.remove("open");
+    backdrop.classList.remove("active");
+    document.body.style.overflow = "";
+    if (btnMenu) btnMenu.setAttribute("aria-expanded", "false");
+  };
+
+  const abrirMenu = () => {
+    sidebar.classList.add("open");
+    backdrop.classList.add("active");
+    document.body.style.overflow = "hidden";
+    if (btnMenu) btnMenu.setAttribute("aria-expanded", "true");
+  };
+
+  if (sidebar && btnMenu && backdrop) {
+    btnMenu.addEventListener("click", () => {
+      if (sidebar.classList.contains("open")) {
+        fecharMenu();
+      } else {
+        abrirMenu();
+      }
+    });
+
+    if (btnClose) {
+      btnClose.addEventListener("click", fecharMenu);
+    }
+
+    backdrop.addEventListener("click", fecharMenu);
+
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.addEventListener("click", fecharMenu);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && sidebar.classList.contains("open")) {
+        fecharMenu();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 900 && sidebar.classList.contains("open")) {
+        fecharMenu();
+      }
+    });
+  }
+}
 
 function initNavegacao() {
   document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -268,3 +323,93 @@ async function totalPorCliente(nomeCliente) {
     console.error('Falha oa obter dados:', err.message);
   }
 }
+
+function renderizarInformacoes3(dados) {
+  const tbody = document.getElementById('tbody-rel3');
+  const kpiFaturamento = document.getElementById('rel3-faturamento');
+  const kpiComissao = document.getElementById('rel3-comissao');
+
+  if (!tbody) {
+    console.error('Elemento #tbody-rel3 não encontrado.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+  kpiFaturamento.textContent = formatadorMoeda.format(0);
+  kpiComissao.textContent = formatadorMoeda.format(0);
+
+  if (!dados || dados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-cell">Nenhuma comissão encontrada para o representante informado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  let faturamentoTotal = 0;
+  let comissaoTotal = 0;
+
+  dados.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const valorTotal = Number(item.ValorTotalPedido);
+    const valorComissao = Number(item.ValorComissao);
+
+    faturamentoTotal += valorTotal;
+    comissaoTotal += valorComissao;
+
+    tr.innerHTML = `
+      <td>${item.vendedor}</td>
+      <td>${item.produto}</td>
+      <td>${item.TotalPedido}</td>
+      <td>${formatadorMoeda.format(valorTotal)}</td>
+      <td>${formatadorMoeda.format(valorComissao)}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  kpiFaturamento.textContent = formatadorMoeda.format(faturamentoTotal);
+  kpiComissao.textContent = formatadorMoeda.format(comissaoTotal);
+}
+
+async function totalComissaoVendedor(nomeVendedor) {
+
+  try {
+    const rota = `/api/comissoes/${encodeURIComponent(nomeVendedor)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes3(dados);
+  } catch (err) {
+    console.error('Falha ao obter dados:', err.message);
+    const tbody = document.getElementById('tbody-rel3');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-cell">Erro ao consultar: ${err.message}</td>
+      </tr>
+    `;
+  }
+}
+function setupBuscaComissoes() {
+  const inputBusca = document.getElementById('rel3-busca');
+
+  if (inputBusca) {
+    inputBusca.addEventListener('input', (event) => {
+      const termo = event.target.value.trim();
+      if (termo) {
+        totalComissaoVendedor(termo);
+      } else {
+        renderizarInformacoes3([]);
+      }
+    });
+  }
+}
+
