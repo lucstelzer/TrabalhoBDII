@@ -114,3 +114,27 @@ app.get('/api/produtos', async (req, res) => {
     res.status(500).json({ erro: err.message });
   }
 });
+
+app.get('/api/vendedores/:nome', async (req, res) => {
+  const { nome } = req.params;
+  try {
+    const pool = await conn();
+    const resultado = await pool.request().query(`exec TotalPorVendedor @nome='${nome}'`)
+    res.json(resultado.recordset);
+  } catch (err) {
+    console.error('Erro na execução:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+app.get('/api/clientesPorRegiao/:nome', async (req, res) => {
+  const { nome } = req.params;
+  try {
+    const pool = await conn();
+    const resultado = await pool.request().query(`exec ClientesPorRegiao @nome='${nome}'`)
+    res.json(resultado.recordset);
+  } catch (err) {
+    console.error('Erro na execução:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});

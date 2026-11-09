@@ -10,7 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBuscaComissoes();
   setupMenuMobile();
   totalPorProduto();
-  setupBuscaProdutos()
+  setupBuscaProdutos();
+  setupBuscaVendedores();
+  showRegioes2();
 });
 
 function setupMenuMobile() {
@@ -282,7 +284,7 @@ function renderizarInformacoes2(clientes) {
   if (!clientes || clientes.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="3" style="text-align: center;">Nenhuma venda encontrada para o cliente selecionada.</td>
+        <td colspan="2" style="text-align: center;">Nenhuma venda encontrada para o cliente selecionada.</td>
       </tr>
     `;
     return;
@@ -326,13 +328,13 @@ async function totalPorCliente(nomeCliente) {
   }
 }
 
-function renderizarInformacoes3(dados) {
-  const tbody = document.getElementById('tbody-rel3');
-  const kpiFaturamento = document.getElementById('rel3-faturamento');
-  const kpiComissao = document.getElementById('rel3-comissao');
+function renderizarInformacoes6(dados) {
+  const tbody = document.getElementById('tbody-rel6');
+  const kpiFaturamento = document.getElementById('rel6-faturamento');
+  const kpiComissao = document.getElementById('rel6-comissao');
 
   if (!tbody) {
-    console.error('Elemento #tbody-rel3 não encontrado.');
+    console.error('Elemento #tbody-rel6 não encontrado.');
     return;
   }
 
@@ -389,10 +391,10 @@ async function totalComissaoVendedor(nomeVendedor) {
     const dados = await resposta.json();
     console.log('Informações recebidas:', dados);
 
-    renderizarInformacoes3(dados);
+    renderizarInformacoes6(dados);
   } catch (err) {
     console.error('Falha ao obter dados:', err.message);
-    const tbody = document.getElementById('tbody-rel3');
+    const tbody = document.getElementById('tbody-rel6');
     tbody.innerHTML = `
       <tr>
         <td colspan="5" class="empty-cell">Erro ao consultar: ${err.message}</td>
@@ -401,7 +403,7 @@ async function totalComissaoVendedor(nomeVendedor) {
   }
 }
 function setupBuscaComissoes() {
-  const inputBusca = document.getElementById('rel3-busca');
+  const inputBusca = document.getElementById('rel6-busca');
 
   if (inputBusca) {
     inputBusca.addEventListener('input', (event) => {
@@ -409,7 +411,7 @@ function setupBuscaComissoes() {
       if (termo) {
         totalComissaoVendedor(termo);
       } else {
-        renderizarInformacoes3([]);
+        renderizarInformacoes6([]);
       }
     });
   }
@@ -478,5 +480,150 @@ function setupBuscaProdutos() {
     inputBusca.addEventListener('input', (event) => {
       totalPorProduto(event.target.value.trim());
     });
+  }
+}
+function setupBuscaVendedores() {
+  const inputBusca = document.getElementById('rel3-busca');
+
+  if (inputBusca) {
+    inputBusca.addEventListener('input', (event) => {
+      const termo = event.target.value.trim();
+      if (termo) {
+        totalPorVendedor(termo);
+      } else {
+        renderizarInformacoes3([]);
+      }
+    });
+  }
+}
+
+function renderizarInformacoes3(vendedores) {
+  const tbody = document.getElementById('tbody-rel3');
+  if (!tbody) {
+    console.error('Elemento #tbody-rel3 não encontrado.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!vendedores || vendedores.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center;">Nenhuma venda encontrada para o vendedor selecionada.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  vendedores.forEach(vendedor => {
+    const tr = document.createElement('tr');
+    const nomeVendedor = vendedor.NomeVendedor;
+    const totalVendido = vendedor.TotalVendido;
+
+    const valorNumerico = Number(totalVendido);
+    const totalFormatado = !isNaN(valorNumerico)
+      ? formatadorMoeda.format(valorNumerico)
+      : totalVendido;
+
+    tr.innerHTML = `
+      <td>${nomeVendedor}</td>
+      <td>${totalFormatado}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function totalPorVendedor(nomeVendedor) {
+
+  try {
+    const rota = `/api/vendedores/${encodeURIComponent(nomeVendedor)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes3(dados);
+  } catch (err) {
+    console.error('Falha oa obter dados:', err.message);
+  }
+}
+
+async function showRegioes2() {
+  const selectElement = document.getElementById('rel4-select-regiao');
+  try {
+    const resposta = await fetch('/api/regioes');
+    const regioes = await resposta.json();
+
+    selectElement.innerHTML = '<option value="">Selecione uma região...</option>';
+
+    regioes.forEach(regiao => {
+      const option = document.createElement('option');
+      option.value = regiao.nome_regiao;
+      option.textContent = regiao.nome_regiao;
+      selectElement.appendChild(option);
+    });
+    selectElement.addEventListener('change', (event) => {
+      const nomeSelecionado = event.target.value;
+      if (nomeSelecionado) {
+        clientesPorRegiao(nomeSelecionado);
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao carregar regiões no front-end:', err.message);
+  }
+}
+
+function renderizarInformacoes4(clientes) {
+  const tbody = document.getElementById('tbody-rel4-regioes');
+  if (!tbody) {
+    console.error('Elemento #tbody-rel4-regio-regioes não encontrado.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!clientes || clientes.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="1" style="text-align: center;">Nenhuma venda encontrada para a região selecionada.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  clientes.forEach(cliente => {
+    const tr = document.createElement('tr');
+
+    const nomeCliente = cliente.Cliente;
+
+    tr.innerHTML = `
+      <td>${nomeCliente}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function clientesPorRegiao(nomeRegiao) {
+
+  try {
+    const rota = `/api/clientesPorRegiao/${encodeURIComponent(nomeRegiao)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes4(dados);
+  } catch (err) {
+    console.error('Falha oa obter dados:', err.message);
   }
 }
