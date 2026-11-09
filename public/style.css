@@ -280,6 +280,12 @@ body {
   background-color: #b91c1c;
 }
 
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
 .header-actions {
   display: flex;
   align-items: center;

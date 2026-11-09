@@ -157,6 +157,9 @@ function setupModais() {
   const modalProd = document.getElementById("modal-produto");
   const btnNovoProduto = document.getElementById("btn-novo-produto");
 
+  const modalRetirarProd = document.getElementById("modal-retirar-produto");
+  const btnRetirarProd = document.getElementById("btn-retirar-produto");
+
   const modalCancPed = document.getElementById("modal-cancelar-pedido");
   const btnCancPed = document.getElementById("btn-cancelar-pedido");
 
@@ -193,6 +196,12 @@ function setupModais() {
   if (btnNovoProduto && modalProd) {
     btnNovoProduto.addEventListener("click", () => {
       modalProd.classList.add("active");
+    });
+  }
+
+  if (btnRetirarProd && modalRetirarProd) {
+    btnRetirarProd.addEventListener("click", () => {
+      modalRetirarProd.classList.add("active");
     });
   }
 
@@ -378,6 +387,27 @@ function setupModais() {
     });
   }
 
+  function removerProduto(nomeProduto) {
+    const termo = (nomeProduto || "").trim().toLowerCase();
+    if (!termo) return;
+
+    document.querySelectorAll("#tbody-produtos tr").forEach(tr => {
+      const tdNome = tr.querySelector("td:first-child");
+      if (tdNome && tdNome.textContent.trim().toLowerCase().includes(termo)) {
+        tr.remove();
+      }
+    });
+
+    const selectPedProduto = document.getElementById("ped-produto");
+    if (selectPedProduto) {
+      Array.from(selectPedProduto.options).forEach(opt => {
+        if (opt.value.toLowerCase().includes(termo) || opt.textContent.toLowerCase().includes(termo)) {
+          opt.remove();
+        }
+      });
+    }
+  }
+
   const formProduto = document.getElementById("form-novo-produto");
   if (formProduto) {
     formProduto.addEventListener("submit", (e) => {
@@ -390,13 +420,26 @@ function setupModais() {
       const tbodyProd = document.getElementById("tbody-produtos");
       if (tbodyProd) {
         const tr = document.createElement("tr");
+        tr.dataset.produto = nome;
         tr.innerHTML = `
           <td>${nome}</td>
           <td>${categoria}</td>
           <td>${formatBRL(preco)}</td>
           <td>${estoque} un.</td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm btn-remover-linha-produto">
+              <i data-lucide="trash-2"></i> Retirar
+            </button>
+          </td>
         `;
+        const btnRemoverLinha = tr.querySelector(".btn-remover-linha-produto");
+        if (btnRemoverLinha) {
+          btnRemoverLinha.addEventListener("click", () => {
+            removerProduto(nome);
+          });
+        }
         tbodyProd.appendChild(tr);
+        lucide.createIcons();
       }
 
       const selectPedProduto = document.getElementById("ped-produto");
@@ -409,6 +452,17 @@ function setupModais() {
 
       if (modalProd) modalProd.classList.remove("active");
       formProduto.reset();
+    });
+  }
+
+  const formRetirarProduto = document.getElementById("form-retirar-produto");
+  if (formRetirarProduto) {
+    formRetirarProduto.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("retirar-prod-nome").value;
+      removerProduto(nome);
+      if (modalRetirarProd) modalRetirarProd.classList.remove("active");
+      formRetirarProduto.reset();
     });
   }
 
