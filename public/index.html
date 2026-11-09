@@ -317,8 +317,12 @@
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h3>Relatório 4: Desempenho de Equipamentos</h3>
+              <h3>Relatório 5: Total vendido por produto</h3>
               <p class="subtitle">Ranking de faturamento e volume por modelo de climatizador</p>
+            </div>
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="rel5-busca" placeholder="Pesquisar equipamento (ex: Split, Inverter)...">
             </div>
           </div>
           <div class="table-responsive">
@@ -326,13 +330,11 @@
               <thead>
                 <tr>
                   <th>Equipamento</th>
-                  <th>Preço Catálogo</th>
-                  <th>Unidades Faturadas</th>
-                  <th>Preço Médio Praticado</th>
-                  <th>Faturamento Bruto (R$)</th>
+                  <th>Unidades Vendidas</th>
+                  <th>Faturamento Total (R$)</th>
                 </tr>
               </thead>
-              <tbody id="tbody-rel4">
+              <tbody id="tbody-rel5">
                 <!-- JS -->
               </tbody>
             </table>

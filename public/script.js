@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
   showClientes();
   setupBuscaComissoes();
   setupMenuMobile();
+  totalPorProduto();
+  setupBuscaProdutos()
 });
 
 function setupMenuMobile() {
@@ -413,3 +415,68 @@ function setupBuscaComissoes() {
   }
 }
 
+function renderizarInformacoes5(dados) {
+  const tbody = document.getElementById('tbody-rel5');
+  if (!tbody) {
+    console.error('Elemento #tbody-rel5 não encontrado.');
+    return;
+  }
+  tbody.innerHTML = '';
+  if (!dados || dados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty-cell">Nenhuma venda de produto encontrada.</td>
+      </tr>
+    `;
+    return;
+  }
+  dados.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const valorNumerico = Number(item.faturamento_total);
+    const totalFormatado = !isNaN(valorNumerico)
+      ? formatadorMoeda.format(valorNumerico)
+      : item.faturamento_total;
+
+    tr.innerHTML = `
+      <td>${item.produto}</td>
+      <td>${item.total_quantidade_vendida}</td>
+      <td>${totalFormatado}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+async function totalPorProduto(termo = '') {
+
+  try {
+    const rota = `/api/produtos?busca=${encodeURIComponent(termo)}`;
+    const resposta = await fetch(rota);
+
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+
+    const dados = await resposta.json();
+    console.log('Informações recebidas:', dados);
+
+    renderizarInformacoes5(dados);
+  } catch (err) {
+    console.error('Falha ao obter dados:', err.message);
+    const tbody = document.getElementById('tbody-rel5');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty-cell">Erro ao consultar: ${err.message}</td>
+      </tr>
+    `;
+  }
+}
+function setupBuscaProdutos() {
+  const inputBusca = document.getElementById('rel5-busca');
+
+  if (inputBusca) {
+    inputBusca.addEventListener('input', (event) => {
+      totalPorProduto(event.target.value.trim());
+    });
+  }
+}

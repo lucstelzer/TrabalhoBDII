@@ -74,11 +74,9 @@ app.get('/api/clientes', async (req, res) => {
 
 app.get('/api/clientes/:nome', async (req, res) => {
   const { nome } = req.params;
-
   try {
     const pool = await conn();
     const resultado = await pool.request().query(`exec TotalVendidoCliente @nome='${nome}'`)
-
     res.json(resultado.recordset);
   } catch (err) {
     console.error('Erro na execução:', err.message);
@@ -88,12 +86,27 @@ app.get('/api/clientes/:nome', async (req, res) => {
 
 app.get('/api/comissoes/:vendedor', async (req, res) => {
   const { vendedor } = req.params;
-
   try {
     const pool = await conn();
     const resultado = await pool.request()
       .input('vendedor', sql.VarChar(100), vendedor)
       .execute('ComissaoVendedorProduto');
+
+    res.json(resultado.recordset);
+  } catch (err) {
+    console.error('Erro na execução:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+app.get('/api/produtos', async (req, res) => {
+  const busca = req.query.busca || '';
+
+  try {
+    const pool = await conn();
+    const resultado = await pool.request()
+      .input('produto', sql.VarChar(100), busca)
+      .execute('TotalVendidoProduto');
 
     res.json(resultado.recordset);
   } catch (err) {

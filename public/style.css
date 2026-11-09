@@ -632,6 +632,7 @@ body {
 
 /* Responsividade */
 @media (max-width: 900px) {
+
   .menu-toggle,
   .sidebar-close {
     display: inline-flex;
