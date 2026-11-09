@@ -36,6 +36,9 @@
       <button class="nav-btn" data-page="vendedores">
         <i data-lucide="users"></i> Representantes
       </button>
+      <button class="nav-btn" data-page="produtos">
+        <i data-lucide="package"></i> Produtos
+      </button>
       <button class="nav-btn" data-page="pedidos">
         <i data-lucide="shopping-cart"></i> Novo Pedido
       </button>
@@ -99,9 +102,14 @@
               <i data-lucide="search"></i>
               <input type="text" id="busca-cliente" placeholder="Filtrar por razão social, CNPJ ou cidade...">
             </div>
-            <button class="btn btn-primary" id="btn-novo-cliente">
-              <i data-lucide="plus"></i> Cadastrar Cliente
-            </button>
+            <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-transferir-cliente">
+                <i data-lucide="arrow-left-right"></i> Transferir Região
+              </button>
+              <button class="btn btn-primary" id="btn-novo-cliente">
+                <i data-lucide="plus"></i> Cadastrar Cliente
+              </button>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="data-table">
@@ -130,12 +138,50 @@
               <h3>Quadro de Representantes Oficiais</h3>
               <p class="subtitle">Cada representante atua exclusivamente em seu território homologado</p>
             </div>
-            <button class="btn btn-primary" id="btn-novo-vendedor">
-              <i data-lucide="user-plus"></i> Novo Representante
-            </button>
+            <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-mover-regiao-vendedor">
+                <i data-lucide="arrow-left-right"></i> Mover Região
+              </button>
+              <button class="btn btn-danger" id="btn-retirar-vendedor">
+                <i data-lucide="user-minus"></i> Retirar Representante
+              </button>
+              <button class="btn btn-primary" id="btn-novo-vendedor">
+                <i data-lucide="user-plus"></i> Novo Representante
+              </button>
+            </div>
           </div>
           <div class="cards-grid" id="grid-vendedores">
             <!-- Inserido dinamicamente via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- PÁGINA: PRODUTOS -->
+      <section id="page-produtos" class="page-view">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="busca-produto" placeholder="Filtrar por modelo, código ou categoria...">
+            </div>
+            <button class="btn btn-primary" id="btn-novo-produto">
+              <i data-lucide="plus"></i> Cadastrar Produto
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Modelo / Equipamento</th>
+                  <th>Categoria / Capacidade</th>
+                  <th>Preço de Catálogo (R$)</th>
+                  <th>Estoque</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-produtos">
+                <!-- Inserido dinamicamente via JS -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -148,6 +194,9 @@
               <h3>Emissão de Pedido de Climatização</h3>
               <p class="subtitle">O representante comercial é preenchido automaticamente pela região do cliente</p>
             </div>
+            <button type="button" class="btn btn-danger" id="btn-cancelar-pedido">
+              <i data-lucide="x-circle"></i> Cancelar Pedido
+            </button>
           </div>
 
           <form id="form-pedido" class="form-grid">
@@ -416,7 +465,7 @@
         <h3>Novo Cliente</h3>
         <button class="modal-close" data-close="modal-cliente">&times;</button>
       </div>
-      <form id="form-novo-cliente">
+      <form id="form-novo-cliente" class="form-grid">
         <div class="form-group">
           <label for="cli-nome">Razão Social / Nome Completo *</label>
           <input type="text" id="cli-nome" required placeholder="Ex: Hospital Central">
@@ -433,6 +482,11 @@
           <label for="cli-regiao">Região / Território *</label>
           <select id="cli-regiao" required>
             <option value="">Selecione...</option>
+            <option value="Norte">Norte</option>
+            <option value="Nordeste">Nordeste</option>
+            <option value="Centro-Oeste">Centro-Oeste</option>
+            <option value="Sudeste">Sudeste</option>
+            <option value="Sul">Sul</option>
           </select>
         </div>
         <div class="form-group">
@@ -442,6 +496,193 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-close="modal-cliente">Cancelar</button>
           <button type="submit" class="btn btn-primary">Gravar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cadastro de Novo Representante -->
+  <div class="modal-overlay" id="modal-vendedor">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Novo Representante</h3>
+        <button class="modal-close" data-close="modal-vendedor">&times;</button>
+      </div>
+      <form id="form-novo-vendedor" class="form-grid">
+        <div class="form-group">
+          <label for="vend-nome">Nome Completo *</label>
+          <input type="text" id="vend-nome" required placeholder="Ex: Carlos Eduardo Mendes">
+        </div>
+        <div class="form-group">
+          <label for="vend-doc">CPF ou CNPJ *</label>
+          <input type="text" id="vend-doc" required placeholder="Ex: 000.000.000-00">
+        </div>
+        <div class="form-group">
+          <label for="vend-tel">Telefone de Contato</label>
+          <input type="text" id="vend-tel" placeholder="(00) 00000-0000">
+        </div>
+        <div class="form-group">
+          <label for="vend-email">E-mail Comercial</label>
+          <input type="email" id="vend-email" placeholder="representante@centraldear.com.br">
+        </div>
+        <div class="form-group">
+          <label for="vend-regiao">Região / Território Exclusivo *</label>
+          <select id="vend-regiao" required>
+            <option value="">Selecione...</option>
+            <option value="Norte">Norte</option>
+            <option value="Nordeste">Nordeste</option>
+            <option value="Centro-Oeste">Centro-Oeste</option>
+            <option value="Sudeste">Sudeste</option>
+            <option value="Sul">Sul</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-vendedor">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Gravar Representante</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cadastro de Novo Produto -->
+  <div class="modal-overlay" id="modal-produto">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Cadastrar Produto</h3>
+        <button class="modal-close" data-close="modal-produto">&times;</button>
+      </div>
+      <form id="form-novo-produto" class="form-grid">
+        <div class="form-group">
+          <label for="prod-nome">Modelo / Equipamento *</label>
+          <input type="text" id="prod-nome" required placeholder="Ex: Split Hi-Wall 12.000 BTUs Inverter">
+        </div>
+        <div class="form-group">
+          <label for="prod-categoria">Categoria / Capacidade *</label>
+          <input type="text" id="prod-categoria" required placeholder="Ex: Residencial - 12.000 BTUs">
+        </div>
+        <div class="form-group">
+          <label for="prod-preco">Preço de Catálogo (R$) *</label>
+          <input type="number" id="prod-preco" step="0.01" min="0" required placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label for="prod-estoque">Quantidade em Estoque *</label>
+          <input type="number" id="prod-estoque" min="0" value="1" required placeholder="Ex: 10">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-produto">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Gravar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Transferir Região de Cliente -->
+  <div class="modal-overlay" id="modal-transferir-cliente">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Transferir Cliente de Região</h3>
+        <button class="modal-close" data-close="modal-transferir-cliente">&times;</button>
+      </div>
+      <form id="form-transferir-cliente" class="form-grid">
+        <div class="form-group">
+          <label for="transf-cli-nome">Cliente *</label>
+          <select id="transf-cli-nome" required>
+            <option value="">Selecione o cliente...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="transf-cli-regiao">Nova Região Comercial *</label>
+          <select id="transf-cli-regiao" required>
+            <option value="">Selecione a região de destino...</option>
+            <option value="Norte">Norte</option>
+            <option value="Nordeste">Nordeste</option>
+            <option value="Centro-Oeste">Centro-Oeste</option>
+            <option value="Sudeste">Sudeste</option>
+            <option value="Sul">Sul</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-transferir-cliente">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Transferir Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Mover Região para Representante -->
+  <div class="modal-overlay" id="modal-mover-regiao-vendedor">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Mover Região para Representante</h3>
+        <button class="modal-close" data-close="modal-mover-regiao-vendedor">&times;</button>
+      </div>
+      <form id="form-mover-regiao-vendedor" class="form-grid">
+        <div class="form-group">
+          <label for="mover-vend-nome">Representante *</label>
+          <input type="text" id="mover-vend-nome" required placeholder="Digite ou selecione o representante">
+        </div>
+        <div class="form-group">
+          <label for="mover-vend-regiao">Nova Região / Território *</label>
+          <select id="mover-vend-regiao" required>
+            <option value="">Selecione a região...</option>
+            <option value="Norte">Norte</option>
+            <option value="Nordeste">Nordeste</option>
+            <option value="Centro-Oeste">Centro-Oeste</option>
+            <option value="Sudeste">Sudeste</option>
+            <option value="Sul">Sul</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-mover-regiao-vendedor">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Mudança</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Retirar Representante -->
+  <div class="modal-overlay" id="modal-retirar-vendedor">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Retirar Representante</h3>
+        <button class="modal-close" data-close="modal-retirar-vendedor">&times;</button>
+      </div>
+      <form id="form-retirar-vendedor" class="form-grid">
+        <div class="form-group">
+          <label for="retirar-vend-nome">Representante a ser retirado *</label>
+          <input type="text" id="retirar-vend-nome" required placeholder="Nome ou CPF/CNPJ do representante">
+        </div>
+        <div class="form-group">
+          <label for="retirar-vend-motivo">Motivo do Desligamento</label>
+          <input type="text" id="retirar-vend-motivo" placeholder="Ex: Fim de contrato, realocação territorial...">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-retirar-vendedor">Voltar</button>
+          <button type="submit" class="btn btn-danger">Retirar Representante</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cancelar Pedido -->
+  <div class="modal-overlay" id="modal-cancelar-pedido">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Cancelar Pedido</h3>
+        <button class="modal-close" data-close="modal-cancelar-pedido">&times;</button>
+      </div>
+      <form id="form-cancelar-pedido" class="form-grid">
+        <div class="form-group">
+          <label for="canc-ped-id">Número / ID do Pedido *</label>
+          <input type="number" id="canc-ped-id" min="1" required placeholder="Ex: 1024">
+        </div>
+        <div class="form-group">
+          <label for="canc-ped-motivo">Motivo do Cancelamento</label>
+          <input type="text" id="canc-ped-motivo" placeholder="Ex: Desistência do comprador, erro de digitação...">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-cancelar-pedido">Voltar</button>
+          <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
         </div>
       </form>
     </div>

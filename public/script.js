@@ -69,6 +69,19 @@ function setupMenuMobile() {
 }
 
 function initNavegacao() {
+  const titulos = {
+    "clientes": ["Carteira de Clientes", "Gestão de compradores corporativos e residenciais"],
+    "vendedores": ["Quadro Comercial", "Representantes exclusivos por divisão territorial"],
+    "produtos": ["Catálogo de Produtos", "Cadastro e controle de equipamentos de climatização"],
+    "pedidos": ["Emissão de Pedido", "Formulação e cálculo de vendas com proteção regional"],
+    "rel-regiao": ["Relatório 1: Total vendido por região", "Valor total comercializado em cada região"],
+    "rel-clientes": ["Relatório 2: Total vendido por cliente", "Histórico acumulado de compras por cliente"],
+    "rel-vendedor": ["Relatório 3: Vendas por Representante", "Totalização por vendedor com filtro textual"],
+    "rel-clienteRegiao": ["Relatório 4: Clientes por Região", "Listagem de clientes pertencentes a determinada região"],
+    "rel-produtos": ["Relatório 5: Total vendido por produto", "Volume e faturamento por modelo de ar condicionado"],
+    "rel-comissoes": ["Relatório 6: Extrato de Comissões", "Cálculo detalhado de remuneração por vendedor e produto"]
+  };
+
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -81,7 +94,7 @@ function initNavegacao() {
         targetElement.classList.add("active");
       }
 
-      if (typeof titulos !== "undefined" && titulos[target]) {
+      if (titulos[target]) {
         document.getElementById("page-title").textContent = titulos[target][0];
         document.getElementById("page-subtitle").textContent = titulos[target][1];
       }
@@ -129,9 +142,63 @@ function setupModais() {
   const modalCli = document.getElementById("modal-cliente");
   const btnNovoCliente = document.getElementById("btn-novo-cliente");
 
+  const modalTransfCli = document.getElementById("modal-transferir-cliente");
+  const btnTransfCli = document.getElementById("btn-transferir-cliente");
+
+  const modalVend = document.getElementById("modal-vendedor");
+  const btnNovoVendedor = document.getElementById("btn-novo-vendedor");
+
+  const modalMoverVend = document.getElementById("modal-mover-regiao-vendedor");
+  const btnMoverVend = document.getElementById("btn-mover-regiao-vendedor");
+
+  const modalRetirarVend = document.getElementById("modal-retirar-vendedor");
+  const btnRetirarVend = document.getElementById("btn-retirar-vendedor");
+
+  const modalProd = document.getElementById("modal-produto");
+  const btnNovoProduto = document.getElementById("btn-novo-produto");
+
+  const modalCancPed = document.getElementById("modal-cancelar-pedido");
+  const btnCancPed = document.getElementById("btn-cancelar-pedido");
+
   if (btnNovoCliente && modalCli) {
     btnNovoCliente.addEventListener("click", () => {
       modalCli.classList.add("active");
+    });
+  }
+
+  if (btnTransfCli && modalTransfCli) {
+    btnTransfCli.addEventListener("click", () => {
+      modalTransfCli.classList.add("active");
+    });
+  }
+
+  if (btnNovoVendedor && modalVend) {
+    btnNovoVendedor.addEventListener("click", () => {
+      modalVend.classList.add("active");
+    });
+  }
+
+  if (btnMoverVend && modalMoverVend) {
+    btnMoverVend.addEventListener("click", () => {
+      modalMoverVend.classList.add("active");
+    });
+  }
+
+  if (btnRetirarVend && modalRetirarVend) {
+    btnRetirarVend.addEventListener("click", () => {
+      modalRetirarVend.classList.add("active");
+    });
+  }
+
+  if (btnNovoProduto && modalProd) {
+    btnNovoProduto.addEventListener("click", () => {
+      modalProd.classList.add("active");
+    });
+  }
+
+  if (btnCancPed && modalCancPed) {
+    btnCancPed.addEventListener("click", () => {
+      modalCancPed.classList.add("active");
     });
   }
 
@@ -143,36 +210,289 @@ function setupModais() {
     });
   });
 
+  document.querySelectorAll(".modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove("active");
+      }
+    });
+  });
+
   const formCliente = document.getElementById("form-novo-cliente");
   if (formCliente) {
     formCliente.addEventListener("submit", (e) => {
       e.preventDefault();
+      const nome = document.getElementById("cli-nome").value;
+      const doc = document.getElementById("cli-doc").value;
+      const tel = document.getElementById("cli-tel").value || "-";
+      const regiao = document.getElementById("cli-regiao").value;
+      const cidade = document.getElementById("cli-cidade").value;
+
+      const tbodyCli = document.getElementById("tbody-clientes");
+      if (tbodyCli) {
+        const tr = document.createElement("tr");
+        tr.dataset.cliente = nome;
+        tr.innerHTML = `
+          <td>${nome}</td>
+          <td>${doc}</td>
+          <td>${tel}</td>
+          <td>${cidade}</td>
+          <td class="col-regiao">${regiao}</td>
+        `;
+        tbodyCli.appendChild(tr);
+      }
+
+      const selectTransfCli = document.getElementById("transf-cli-nome");
+      if (selectTransfCli) {
+        const opt = document.createElement("option");
+        opt.value = nome;
+        opt.textContent = nome;
+        selectTransfCli.appendChild(opt);
+      }
+
+      const selectPedCli = document.getElementById("ped-cliente");
+      if (selectPedCli) {
+        const optPed = document.createElement("option");
+        optPed.value = nome;
+        optPed.textContent = nome;
+        selectPedCli.appendChild(optPed);
+      }
+
       if (modalCli) modalCli.classList.remove("active");
       formCliente.reset();
+    });
+  }
+
+  const formTransfCliente = document.getElementById("form-transferir-cliente");
+  if (formTransfCliente) {
+    formTransfCliente.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nomeCli = document.getElementById("transf-cli-nome").value;
+      const novaRegiao = document.getElementById("transf-cli-regiao").value;
+
+      document.querySelectorAll("#tbody-clientes tr").forEach(tr => {
+        const tdNome = tr.querySelector("td:first-child");
+        const tdRegiao = tr.querySelector(".col-regiao") || tr.querySelector("td:last-child");
+        if (tdNome && tdNome.textContent.trim().toLowerCase() === nomeCli.trim().toLowerCase() && tdRegiao) {
+          tdRegiao.textContent = novaRegiao;
+        }
+      });
+
+      if (modalTransfCli) modalTransfCli.classList.remove("active");
+      formTransfCliente.reset();
+    });
+  }
+
+  const formVendedor = document.getElementById("form-novo-vendedor");
+  if (formVendedor) {
+    formVendedor.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("vend-nome").value;
+      const doc = document.getElementById("vend-doc").value;
+      const tel = document.getElementById("vend-tel").value || "Sem telefone";
+      const email = document.getElementById("vend-email").value || "";
+      const regiao = document.getElementById("vend-regiao").value;
+
+      const gridVend = document.getElementById("grid-vendedores");
+      if (gridVend) {
+        const iniciais = nome
+          .split(" ")
+          .filter(Boolean)
+          .slice(0, 2)
+          .map(p => p[0].toUpperCase())
+          .join("");
+
+        const card = document.createElement("div");
+        card.className = "rep-card";
+        card.dataset.vendedor = nome;
+        card.innerHTML = `
+          <div class="rep-header">
+            <div class="rep-avatar">${iniciais || "RP"}</div>
+            <div>
+              <h4>${nome}</h4>
+              <p class="subtitle">${doc}</p>
+            </div>
+          </div>
+          <p class="subtitle">${tel}${email ? " • " + email : ""}</p>
+          <span class="rep-tag">Região: ${regiao}</span>
+          <div class="rep-actions">
+            <button type="button" class="btn btn-secondary btn-card-mover">Mover Região</button>
+            <button type="button" class="btn btn-danger btn-card-retirar">Retirar</button>
+          </div>
+        `;
+
+        card.querySelector(".btn-card-mover").addEventListener("click", () => {
+          const inputMoverNome = document.getElementById("mover-vend-nome");
+          if (inputMoverNome) inputMoverNome.value = nome;
+          if (modalMoverVend) modalMoverVend.classList.add("active");
+        });
+
+        card.querySelector(".btn-card-retirar").addEventListener("click", () => {
+          const inputRetirarNome = document.getElementById("retirar-vend-nome");
+          if (inputRetirarNome) inputRetirarNome.value = nome;
+          if (modalRetirarVend) modalRetirarVend.classList.add("active");
+        });
+
+        gridVend.appendChild(card);
+      }
+
+      if (modalVend) modalVend.classList.remove("active");
+      formVendedor.reset();
+    });
+  }
+
+  const formMoverVendedor = document.getElementById("form-mover-regiao-vendedor");
+  if (formMoverVendedor) {
+    formMoverVendedor.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nomeVend = document.getElementById("mover-vend-nome").value.trim().toLowerCase();
+      const novaRegiao = document.getElementById("mover-vend-regiao").value;
+
+      document.querySelectorAll("#grid-vendedores .rep-card").forEach(card => {
+        const h4 = card.querySelector("h4");
+        const tag = card.querySelector(".rep-tag");
+        if (h4 && h4.textContent.trim().toLowerCase() === nomeVend && tag) {
+          tag.textContent = `Região: ${novaRegiao}`;
+        }
+      });
+
+      if (modalMoverVend) modalMoverVend.classList.remove("active");
+      formMoverVendedor.reset();
+    });
+  }
+
+  const formRetirarVendedor = document.getElementById("form-retirar-vendedor");
+  if (formRetirarVendedor) {
+    formRetirarVendedor.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const termoVend = document.getElementById("retirar-vend-nome").value.trim().toLowerCase();
+
+      document.querySelectorAll("#grid-vendedores .rep-card").forEach(card => {
+        if (card.textContent.toLowerCase().includes(termoVend)) {
+          card.remove();
+        }
+      });
+
+      if (modalRetirarVend) modalRetirarVend.classList.remove("active");
+      formRetirarVendedor.reset();
+    });
+  }
+
+  const formProduto = document.getElementById("form-novo-produto");
+  if (formProduto) {
+    formProduto.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("prod-nome").value;
+      const categoria = document.getElementById("prod-categoria").value;
+      const preco = parseFloat(document.getElementById("prod-preco").value) || 0;
+      const estoque = parseInt(document.getElementById("prod-estoque").value) || 0;
+
+      const tbodyProd = document.getElementById("tbody-produtos");
+      if (tbodyProd) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${nome}</td>
+          <td>${categoria}</td>
+          <td>${formatBRL(preco)}</td>
+          <td>${estoque} un.</td>
+        `;
+        tbodyProd.appendChild(tr);
+      }
+
+      const selectPedProduto = document.getElementById("ped-produto");
+      if (selectPedProduto) {
+        const opt = document.createElement("option");
+        opt.value = nome;
+        opt.textContent = `${nome} - ${formatBRL(preco)}`;
+        selectPedProduto.appendChild(opt);
+      }
+
+      if (modalProd) modalProd.classList.remove("active");
+      formProduto.reset();
+    });
+  }
+
+  const formCancelarPedido = document.getElementById("form-cancelar-pedido");
+  if (formCancelarPedido) {
+    formCancelarPedido.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idPedido = document.getElementById("canc-ped-id").value;
+      try {
+        await fetch(`/api/pedidos?id=${encodeURIComponent(idPedido)}`);
+      } catch (err) {
+        console.error("Erro ao solicitar cancelamento:", err.message);
+      }
+      if (modalCancPed) modalCancPed.classList.remove("active");
+      formCancelarPedido.reset();
+    });
+  }
+
+  const buscaCliente = document.getElementById("busca-cliente");
+  if (buscaCliente) {
+    buscaCliente.addEventListener("input", (e) => {
+      const termo = e.target.value.toLowerCase().trim();
+      document.querySelectorAll("#tbody-clientes tr").forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(termo) ? "" : "none";
+      });
+    });
+  }
+
+  const buscaProduto = document.getElementById("busca-produto");
+  if (buscaProduto) {
+    buscaProduto.addEventListener("input", (e) => {
+      const termo = e.target.value.toLowerCase().trim();
+      document.querySelectorAll("#tbody-produtos tr").forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(termo) ? "" : "none";
+      });
     });
   }
 }
 
 async function showRegioes() {
   const selectElement = document.getElementById('rel1-select-regiao');
+  const selectCliRegiao = document.getElementById('cli-regiao');
+  const selectVendRegiao = document.getElementById('vend-regiao');
+  const selectTransfCliRegiao = document.getElementById('transf-cli-regiao');
+  const selectMoverVendRegiao = document.getElementById('mover-vend-regiao');
   try {
     const resposta = await fetch('/api/regioes');
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
     const regioes = await resposta.json();
+    if (!Array.isArray(regioes)) return;
 
-    selectElement.innerHTML = '<option value="">Selecione uma região...</option>';
+    if (selectElement) {
+      selectElement.innerHTML = '<option value="">Selecione uma região...</option>';
+    }
+    [selectCliRegiao, selectVendRegiao, selectTransfCliRegiao, selectMoverVendRegiao].forEach(sel => {
+      if (sel) sel.innerHTML = '<option value="">Selecione...</option>';
+    });
 
     regioes.forEach(regiao => {
-      const option = document.createElement('option');
-      option.value = regiao.nome_regiao;
-      option.textContent = regiao.nome_regiao;
-      selectElement.appendChild(option);
-    });
-    selectElement.addEventListener('change', (event) => {
-      const nomeSelecionado = event.target.value;
-      if (nomeSelecionado) {
-        totalPorRegiao(nomeSelecionado);
+      if (selectElement) {
+        const option = document.createElement('option');
+        option.value = regiao.nome_regiao;
+        option.textContent = regiao.nome_regiao;
+        selectElement.appendChild(option);
       }
+      [selectCliRegiao, selectVendRegiao, selectTransfCliRegiao, selectMoverVendRegiao].forEach(sel => {
+        if (sel) {
+          const opt = document.createElement('option');
+          opt.value = regiao.nome_regiao;
+          opt.textContent = regiao.nome_regiao;
+          sel.appendChild(opt);
+        }
+      });
     });
+    if (selectElement) {
+      selectElement.addEventListener('change', (event) => {
+        const nomeSelecionado = event.target.value;
+        if (nomeSelecionado) {
+          totalPorRegiao(nomeSelecionado);
+        }
+      });
+    }
   } catch (err) {
     console.error('Erro ao carregar regiões no front-end:', err.message);
   }
@@ -244,24 +564,54 @@ async function totalPorRegiao(nomeRegiao) {
 
 async function showClientes() {
   const selectElement = document.getElementById('rel2-select-clientes');
+  const selectTransfCli = document.getElementById('transf-cli-nome');
+  const selectPedCli = document.getElementById('ped-cliente');
   try {
     const resposta = await fetch('/api/clientes');
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
     const clientes = await resposta.json();
+    if (!Array.isArray(clientes)) return;
 
-    selectElement.innerHTML = '<option value="">Selecione um cliente...</option>';
+    if (selectElement) {
+      selectElement.innerHTML = '<option value="">Selecione um cliente...</option>';
+    }
+    if (selectTransfCli) {
+      selectTransfCli.innerHTML = '<option value="">Selecione o cliente...</option>';
+    }
+    if (selectPedCli) {
+      selectPedCli.innerHTML = '<option value="">Selecione o cliente cadastrado...</option>';
+    }
 
     clientes.forEach(cliente => {
-      const option = document.createElement('option');
-      option.value = cliente.nome_razao_social;
-      option.textContent = cliente.nome_razao_social;
-      selectElement.appendChild(option);
-    });
-    selectElement.addEventListener('change', (event) => {
-      const nomeSelecionado = event.target.value;
-      if (nomeSelecionado) {
-        totalPorCliente(nomeSelecionado);
+      if (selectElement) {
+        const option = document.createElement('option');
+        option.value = cliente.nome_razao_social;
+        option.textContent = cliente.nome_razao_social;
+        selectElement.appendChild(option);
+      }
+      if (selectTransfCli) {
+        const optTransf = document.createElement('option');
+        optTransf.value = cliente.nome_razao_social;
+        optTransf.textContent = cliente.nome_razao_social;
+        selectTransfCli.appendChild(optTransf);
+      }
+      if (selectPedCli) {
+        const optPed = document.createElement('option');
+        optPed.value = cliente.nome_razao_social;
+        optPed.textContent = cliente.nome_razao_social;
+        selectPedCli.appendChild(optPed);
       }
     });
+    if (selectElement) {
+      selectElement.addEventListener('change', (event) => {
+        const nomeSelecionado = event.target.value;
+        if (nomeSelecionado) {
+          totalPorCliente(nomeSelecionado);
+        }
+      });
+    }
   } catch (err) {
     console.error('Erro ao carregar clientes no front-end:', err.message);
   }

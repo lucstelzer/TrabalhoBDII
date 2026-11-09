@@ -271,6 +271,22 @@ body {
   background-color: #cbd5e1;
 }
 
+.btn-danger {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* Campos de Busca & Inputs */
 .search-box {
   display: flex;
@@ -393,6 +409,21 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   margin-top: 8px;
+}
+
+.rep-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.rep-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 6px 10px;
+  font-size: 0.78rem;
 }
 
 /* Formulários */
