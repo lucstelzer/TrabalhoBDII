@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   showRegioes2();
   showCidades();
   formCliente();
+  carregarDadosNovoPedido();
 });
 
 function setupMenuMobile() {
@@ -91,7 +92,55 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
+async function carregarDadosNovoPedido() {
+  const selectCli = document.getElementById("ped-cliente");
+  const selectProd = document.getElementById("ped-produto");
+
+  if (selectCli) {
+    try {
+      const resCli = await fetch("/api/clientes-vendedores");
+      if (resCli.ok) {
+        const clientes = await resCli.json();
+        selectCli.innerHTML = '<option value="">Selecione o cliente cadastrado...</option>';
+        clientes.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id_cliente;
+          opt.textContent = c.nome_razao_social;
+          opt.dataset.idVendedor = c.id_vendedor;
+          opt.dataset.nomeVendedor = c.vendedor;
+          opt.dataset.nomeRegiao = c.nome_regiao;
+          selectCli.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao carregar clientes para pedido:", err.message);
+    }
+  }
+
+  if (selectProd) {
+    try {
+      const resProd = await fetch("/api/produtos-catalogo");
+      if (resProd.ok) {
+        const produtos = await resProd.json();
+        selectProd.innerHTML = '<option value="">Selecione o modelo do catálogo...</option>';
+        produtos.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p.id_produto;
+          opt.textContent = p.descricao;
+          opt.dataset.preco = p.preco_tabela;
+          selectProd.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao carregar produtos para pedido:", err.message);
+    }
+  }
+}
+
 function setupCalculoPedido() {
+  const selectCli = document.getElementById("ped-cliente");
+  const inputVend = document.getElementById("ped-vendedor");
+  const selectProd = document.getElementById("ped-produto");
   const inputQtd = document.getElementById("ped-qtd");
   const inputPreco = document.getElementById("ped-preco");
   const inputComissao = document.getElementById("ped-comissao");
@@ -110,6 +159,31 @@ function setupCalculoPedido() {
     previewComissao.textContent = formatBRL(comissao);
   };
 
+  if (selectCli && inputVend) {
+    selectCli.addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      if (opt && opt.value !== "") {
+        inputVend.value = `${opt.dataset.nomeVendedor} (${opt.dataset.nomeRegiao})`;
+        inputVend.dataset.idVendedor = opt.dataset.idVendedor;
+      } else {
+        inputVend.value = "";
+        delete inputVend.dataset.idVendedor;
+      }
+    });
+  }
+
+  if (selectProd && inputPreco) {
+    selectProd.addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      if (opt && opt.value !== "" && opt.dataset.preco) {
+        inputPreco.value = Number(opt.dataset.preco).toFixed(2);
+      } else {
+        inputPreco.value = "";
+      }
+      atualizarTotais();
+    });
+  }
+
   if (inputQtd && inputPreco && inputComissao) {
     inputQtd.addEventListener("input", atualizarTotais);
     inputPreco.addEventListener("input", atualizarTotais);
@@ -118,9 +192,52 @@ function setupCalculoPedido() {
 
   const formPedido = document.getElementById("form-pedido");
   if (formPedido) {
-    formPedido.addEventListener("submit", (e) => {
+    formPedido.addEventListener("submit", async (e) => {
       e.preventDefault();
-      console.log("Formulário de pedido submetido na interface.");
+
+      const fk_cliente = parseInt(selectCli.value);
+      const fk_vendedor = parseInt(inputVend.dataset.idVendedor);
+      const fk_produto = parseInt(selectProd.value);
+      const quantidade = parseInt(inputQtd.value);
+      const preco_praticado = parseFloat(inputPreco.value);
+      const percentual_comissao = parseFloat(inputComissao.value);
+
+      if (!fk_cliente || !fk_vendedor || !fk_produto) {
+        alert("Selecione um cliente e um equipamento válidos.");
+        return;
+      }
+
+      try {
+        const resposta = await fetch("/api/pedidos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fk_cliente,
+            fk_vendedor,
+            fk_produto,
+            quantidade,
+            preco_praticado,
+            percentual_comissao
+          })
+        });
+
+        const resultado = await resposta.json();
+
+        if (!resposta.ok) {
+          alert("Erro ao emitir pedido: " + (resultado.erro || "Falha na requisição"));
+          return;
+        }
+
+        alert(`Pedido #${resultado.id_pedido} emitido com sucesso!`);
+        formPedido.reset();
+        inputVend.value = "";
+        delete inputVend.dataset.idVendedor;
+        atualizarTotais();
+        totalPorProduto();
+      } catch (err) {
+        console.error("Erro ao enviar pedido:", err.message);
+        alert("Erro de conexão ao emitir o pedido.");
+      }
     });
   }
 }
@@ -590,7 +707,6 @@ function renderizarPainelClientes(clientes) {
 async function showClientes() {
   const selectElement = document.getElementById('rel2-select-clientes') || document.getElementById('rel2-select-cliente');
   const selectTransfCli = document.getElementById('transf-cli-nome');
-  const selectPedCli = document.getElementById('ped-cliente');
   try {
     const resposta = await fetch('/api/clientes');
     if (!resposta.ok) {
@@ -609,9 +725,6 @@ async function showClientes() {
     if (selectTransfCli) {
       selectTransfCli.innerHTML = '<option value="">Selecione o cliente...</option>';
     }
-    if (selectPedCli) {
-      selectPedCli.innerHTML = '<option value="">Selecione o cliente cadastrado...</option>';
-    }
 
     clientes.forEach(cliente => {
       if (selectElement) {
@@ -626,13 +739,8 @@ async function showClientes() {
         optTransf.textContent = cliente.nome_razao_social;
         selectTransfCli.appendChild(optTransf);
       }
-      if (selectPedCli) {
-        const optPed = document.createElement('option');
-        optPed.value = cliente.nome_razao_social;
-        optPed.textContent = cliente.nome_razao_social;
-        selectPedCli.appendChild(optPed);
-      }
     });
+
     if (selectElement) {
       selectElement.onchange = (event) => {
         const nomeSelecionado = event.target.value;
@@ -1129,6 +1237,7 @@ function formCliente() {
       if (modalCli) modalCli.classList.remove("active");
       formulario.reset();
       showClientes();
+      carregarDadosNovoPedido();
     } catch (err) {
       console.error("Falha ao cadastrar cliente:", err.message);
     }
