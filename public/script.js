@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
   showRegioes();
   showClientes();
+  showVendedores();
   setupBuscaComissoes();
   setupMenuMobile();
   totalPorProduto();
@@ -393,96 +394,139 @@ function setupModais() {
 
   const formVendedor = document.getElementById("form-novo-vendedor");
   if (formVendedor) {
-    formVendedor.addEventListener("submit", (e) => {
+    formVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nome = document.getElementById("vend-nome").value;
-      const doc = document.getElementById("vend-doc").value;
-      const tel = document.getElementById("vend-tel").value || "Sem telefone";
-      const email = document.getElementById("vend-email").value || "";
-      const regiao = document.getElementById("vend-regiao").value;
+      const nome = document.getElementById("vend-nome").value.trim();
+      const cpf_cnpj = formatarCpfCnpj(document.getElementById("vend-doc").value);
+      const telefone = formatarTelefone(document.getElementById("vend-tel").value);
+      const email = document.getElementById("vend-email").value.trim();
+      const fk_regiao = Number(document.getElementById("vend-regiao").value);
 
-      const gridVend = document.getElementById("grid-vendedores");
-      if (gridVend) {
-        const iniciais = nome
-          .split(" ")
-          .filter(Boolean)
-          .slice(0, 2)
-          .map(p => p[0].toUpperCase())
-          .join("");
-
-        const card = document.createElement("div");
-        card.className = "rep-card";
-        card.dataset.vendedor = nome;
-        card.innerHTML = `
-          <div class="rep-header">
-            <div class="rep-avatar">${iniciais || "RP"}</div>
-            <div>
-              <h4>${nome}</h4>
-              <p class="subtitle">${doc}</p>
-            </div>
-          </div>
-          <p class="subtitle">${tel}${email ? " • " + email : ""}</p>
-          <span class="rep-tag">Região: ${regiao}</span>
-          <div class="rep-actions">
-            <button type="button" class="btn btn-secondary btn-card-mover">Mover Região</button>
-            <button type="button" class="btn btn-danger btn-card-retirar">Retirar</button>
-          </div>
-        `;
-
-        card.querySelector(".btn-card-mover").addEventListener("click", () => {
-          const inputMoverNome = document.getElementById("mover-vend-nome");
-          if (inputMoverNome) inputMoverNome.value = nome;
-          if (modalMoverVend) modalMoverVend.classList.add("active");
+      try {
+        const resposta = await fetch("/api/vendedores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nome,
+            cpf_cnpj,
+            telefone,
+            email,
+            fk_regiao
+          })
         });
 
-        card.querySelector(".btn-card-retirar").addEventListener("click", () => {
-          const inputRetirarNome = document.getElementById("retirar-vend-nome");
-          if (inputRetirarNome) inputRetirarNome.value = nome;
-          if (modalRetirarVend) modalRetirarVend.classList.add("active");
-        });
+        if (!resposta.ok) {
+          const erroDados = await resposta.json().catch(() => ({}));
+          throw new Error(erroDados.erro || `Status ${resposta.status}`);
+        }
 
-        gridVend.appendChild(card);
+        if (modalVend) modalVend.classList.remove("active");
+        formVendedor.reset();
+        await showVendedores();
+        await carregarDadosNovoPedido();
+      } catch (err) {
+        console.error("Falha ao cadastrar representante:", err.message);
+        alert("Erro ao cadastrar representante: " + err.message);
       }
+    });
+  }
 
-      if (modalVend) modalVend.classList.remove("active");
-      formVendedor.reset();
+  const inputMoverVendNome = document.getElementById("mover-vend-nome");
+  if (inputMoverVendNome) {
+    inputMoverVendNome.addEventListener("input", () => {
+      delete inputMoverVendNome.dataset.idVendedor;
     });
   }
 
   const formMoverVendedor = document.getElementById("form-mover-regiao-vendedor");
   if (formMoverVendedor) {
-    formMoverVendedor.addEventListener("submit", (e) => {
+    formMoverVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nomeVend = document.getElementById("mover-vend-nome").value.trim().toLowerCase();
-      const novaRegiao = document.getElementById("mover-vend-regiao").value;
+      const inputNome = document.getElementById("mover-vend-nome");
+      const nomeVend = inputNome.value.trim();
+      const idNovaRegiao = Number(document.getElementById("mover-vend-regiao").value);
 
-      document.querySelectorAll("#grid-vendedores .rep-card").forEach(card => {
-        const h4 = card.querySelector("h4");
-        const tag = card.querySelector(".rep-tag");
-        if (h4 && h4.textContent.trim().toLowerCase() === nomeVend && tag) {
-          tag.textContent = `Região: ${novaRegiao}`;
+      let idVendedor = inputNome.dataset.idVendedor ? Number(inputNome.dataset.idVendedor) : null;
+      if (!idVendedor && listaVendedoresCache.length > 0) {
+        const encontrado = encontrarVendedorNoCache(nomeVend);
+        if (encontrado) idVendedor = encontrado.id;
+      }
+
+      try {
+        const resposta = await fetch("/api/vendedores/regiao", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_vendedor: idVendedor,
+            nome_vendedor: nomeVend,
+            id_nova_regiao: idNovaRegiao
+          })
+        });
+
+        if (!resposta.ok) {
+          const erroDados = await resposta.json().catch(() => ({}));
+          throw new Error(erroDados.erro || `Status ${resposta.status}`);
         }
-      });
 
-      if (modalMoverVend) modalMoverVend.classList.remove("active");
-      formMoverVendedor.reset();
+        if (modalMoverVend) modalMoverVend.classList.remove("active");
+        formMoverVendedor.reset();
+        delete inputNome.dataset.idVendedor;
+        await showVendedores();
+        await showClientes();
+        await carregarDadosNovoPedido();
+      } catch (err) {
+        console.error("Falha ao mover região do representante:", err.message);
+        alert("Erro ao mover região do representante: " + err.message);
+      }
+    });
+  }
+
+  const inputRetirarVendNome = document.getElementById("retirar-vend-nome");
+  if (inputRetirarVendNome) {
+    inputRetirarVendNome.addEventListener("input", () => {
+      delete inputRetirarVendNome.dataset.idVendedor;
     });
   }
 
   const formRetirarVendedor = document.getElementById("form-retirar-vendedor");
   if (formRetirarVendedor) {
-    formRetirarVendedor.addEventListener("submit", (e) => {
+    formRetirarVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const termoVend = document.getElementById("retirar-vend-nome").value.trim().toLowerCase();
+      const inputNome = document.getElementById("retirar-vend-nome");
+      const termoVend = inputNome.value.trim();
+      const motivo = document.getElementById("retirar-vend-motivo")?.value.trim() || "";
 
-      document.querySelectorAll("#grid-vendedores .rep-card").forEach(card => {
-        if (card.textContent.toLowerCase().includes(termoVend)) {
-          card.remove();
+      let idVendedor = inputNome.dataset.idVendedor ? Number(inputNome.dataset.idVendedor) : null;
+      if (!idVendedor && listaVendedoresCache.length > 0) {
+        const encontrado = encontrarVendedorNoCache(termoVend);
+        if (encontrado) idVendedor = encontrado.id;
+      }
+
+      try {
+        const resposta = await fetch("/api/vendedores", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_vendedor: idVendedor,
+            nome_vendedor: termoVend,
+            motivo
+          })
+        });
+
+        if (!resposta.ok) {
+          const erroDados = await resposta.json().catch(() => ({}));
+          throw new Error(erroDados.erro || `Status ${resposta.status}`);
         }
-      });
 
-      if (modalRetirarVend) modalRetirarVend.classList.remove("active");
-      formRetirarVendedor.reset();
+        if (modalRetirarVend) modalRetirarVend.classList.remove("active");
+        formRetirarVendedor.reset();
+        delete inputNome.dataset.idVendedor;
+        await showVendedores();
+        await carregarDadosNovoPedido();
+      } catch (err) {
+        console.error("Falha ao retirar representante:", err.message);
+        alert("Erro ao retirar representante: " + err.message);
+      }
     });
   }
 
@@ -563,6 +607,9 @@ async function showRegioes() {
     if (listaClientesCache.length > 0) {
       renderizarPainelClientes(listaClientesCache);
     }
+    if (listaVendedoresCache.length > 0) {
+      renderizarPainelVendedores(listaVendedoresCache);
+    }
     if (selectElement) {
       selectElement.addEventListener('change', (event) => {
         const nomeSelecionado = event.target.value;
@@ -642,6 +689,7 @@ async function totalPorRegiao(nomeRegiao) {
 let mapaCidades = {};
 let mapaRegioes = {};
 let listaClientesCache = [];
+let listaVendedoresCache = [];
 
 function extrairCampo(obj, chavesExatas, regexChave) {
   if (!obj) return undefined;
@@ -800,6 +848,133 @@ async function showClientes() {
     }
   } catch (err) {
     console.error('Erro ao carregar clientes no front-end:', err.message);
+  }
+}
+
+function obterDadosCardVendedor(vendedor) {
+  const id = extrairCampo(vendedor, ['id_vendedor', 'id', 'ID', 'cod_vendedor'], /id.*vend|vend.*id|^id$/i);
+  const nome = extrairCampo(
+    vendedor,
+    ['nome', 'nome_vendedor', 'NomeVendedor', 'vendedor', 'Vendedor', 'representante'],
+    /^(?!.*(regi|cidad)).*(nome|vendedor|representante)/i
+  ) ?? '-';
+  const docBruto = extrairCampo(vendedor, ['cpf_cnpj', 'CPF_CNPJ', 'cpf', 'cnpj', 'documento'], /cpf|cnpj|doc/i);
+  const telBruto = extrairCampo(vendedor, ['telefone', 'Telefone', 'tel', 'contato'], /tel|cel|fone|contato/i);
+  const email = extrairCampo(vendedor, ['email', 'Email', 'e_mail'], /mail/i) ?? '';
+
+  const doc = docBruto ? formatarCpfCnpj(docBruto) : 'Sem documento';
+  const telefone = telBruto ? formatarTelefone(telBruto) : 'Sem telefone';
+
+  const nomeRegiaoDireto = extrairCampo(
+    vendedor,
+    ['nome_regiao', 'NomeRegiao', 'Regiao', 'regiao'],
+    /^(?!.*(id|fk|cod)).*regi/i
+  );
+  const idRegiao = extrairCampo(vendedor, ['fk_regiao', 'id_regiao', 'cod_regiao'], /(id|fk|cod).*regi|regi.*(id|fk|cod)/i);
+  const regiao = nomeRegiaoDireto ?? (idRegiao !== undefined ? (mapaRegioes[idRegiao] ?? idRegiao) : 'Sem região');
+
+  return { id, nome, doc, telefone, email, regiao, idRegiao };
+}
+
+function encontrarVendedorNoCache(termo) {
+  const termoNorm = normalizarTexto(termo);
+  const termoDigitos = String(termo || '').replace(/\D/g, '');
+  if (!termoNorm) return null;
+
+  for (const vend of listaVendedoresCache) {
+    const dados = obterDadosCardVendedor(vend);
+    const docDigitos = String(dados.doc || '').replace(/\D/g, '');
+    if (
+      normalizarTexto(dados.nome) === termoNorm ||
+      normalizarTexto(dados.nome).includes(termoNorm) ||
+      (termoDigitos.length > 0 && docDigitos.includes(termoDigitos))
+    ) {
+      return dados;
+    }
+  }
+  return null;
+}
+
+function renderizarPainelVendedores(vendedores) {
+  const gridVend = document.getElementById('grid-vendedores');
+  if (!gridVend) return;
+
+  gridVend.innerHTML = '';
+
+  if (!vendedores || vendedores.length === 0) {
+    gridVend.innerHTML = '<p class="subtitle">Nenhum representante encontrado.</p>';
+    return;
+  }
+
+  const modalMoverVend = document.getElementById('modal-mover-regiao-vendedor');
+  const modalRetirarVend = document.getElementById('modal-retirar-vendedor');
+
+  vendedores.forEach(vendedor => {
+    const { id, nome, doc, telefone, email, regiao } = obterDadosCardVendedor(vendedor);
+
+    const iniciais = String(nome)
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(p => p[0].toUpperCase())
+      .join('');
+
+    const card = document.createElement('div');
+    card.className = 'rep-card';
+    card.dataset.vendedor = nome;
+    if (id !== undefined) card.dataset.idVendedor = id;
+
+    card.innerHTML = `
+      <div class="rep-header">
+        <div class="rep-avatar">${iniciais || 'RP'}</div>
+        <div>
+          <h4>${nome}</h4>
+          <p class="subtitle">${doc}</p>
+        </div>
+      </div>
+      <p class="subtitle">${telefone}${email ? ' • ' + email : ''}</p>
+      <span class="rep-tag">Região: ${regiao}</span>
+      <div class="rep-actions">
+        <button type="button" class="btn btn-secondary btn-card-mover">Mover Região</button>
+        <button type="button" class="btn btn-danger btn-card-retirar">Retirar</button>
+      </div>
+    `;
+
+    card.querySelector('.btn-card-mover').addEventListener('click', () => {
+      const inputMoverNome = document.getElementById('mover-vend-nome');
+      if (inputMoverNome) {
+        inputMoverNome.value = nome;
+        if (id !== undefined) inputMoverNome.dataset.idVendedor = id;
+      }
+      if (modalMoverVend) modalMoverVend.classList.add('active');
+    });
+
+    card.querySelector('.btn-card-retirar').addEventListener('click', () => {
+      const inputRetirarNome = document.getElementById('retirar-vend-nome');
+      if (inputRetirarNome) {
+        inputRetirarNome.value = nome;
+        if (id !== undefined) inputRetirarNome.dataset.idVendedor = id;
+      }
+      if (modalRetirarVend) modalRetirarVend.classList.add('active');
+    });
+
+    gridVend.appendChild(card);
+  });
+}
+
+async function showVendedores() {
+  try {
+    const resposta = await fetch('/api/vendedores');
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+    const vendedores = await resposta.json();
+    if (!Array.isArray(vendedores)) return;
+
+    listaVendedoresCache = vendedores;
+    renderizarPainelVendedores(vendedores);
+  } catch (err) {
+    console.error('Erro ao carregar representantes no front-end:', err.message);
   }
 }
 

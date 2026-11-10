@@ -282,3 +282,91 @@ app.get('/api/produtos-catalogo', async (req, res) => {
     res.status(500).json({ erro: err.message });
   }
 });
+
+// ==========================================
+// ROTAS DA ABA DE REPRESENTANTES (VENDEDORES)
+// ==========================================
+
+// 1. Listar todos os representantes
+app.get('/api/vendedores', async (req, res) => {
+  try {
+    const pool = await conn();
+    const resultado = await pool.request()
+      .execute('NOME_PROC_LISTAR_VENDEDORES'); // <-- Insira o nome da procedure aqui
+    res.json(resultado.recordset);
+  } catch (err) {
+    console.error('Erro ao listar representantes:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// 2. Cadastrar novo representante
+app.post('/api/vendedores', async (req, res) => {
+  const { nome, cpf_cnpj, telefone, email, fk_regiao } = req.body;
+  try {
+    const pool = await conn();
+    const resultado = await pool.request()
+      .input('nome', sql.VarChar(150), nome)
+      .input('cpf_cnpj', sql.VarChar(20), cpf_cnpj)
+      .input('telefone', sql.VarChar(20), telefone)
+      .input('email', sql.VarChar(150), email)
+      .input('fk_regiao', sql.Int, parseInt(fk_regiao))
+      .execute('NOME_PROC_INSERIR_VENDEDOR'); // <-- Insira o nome da procedure aqui
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
+
+    res.status(201).json({ mensagem: 'Representante cadastrado com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao cadastrar representante:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// 3. Mover região de um representante
+app.put('/api/vendedores/regiao', async (req, res) => {
+  const { id_vendedor, nome_vendedor, id_nova_regiao } = req.body;
+  try {
+    const pool = await conn();
+    const resultado = await pool.request()
+      .input('id_vendedor', sql.Int, id_vendedor ? parseInt(id_vendedor) : null)
+      .input('nome_vendedor', sql.VarChar(150), nome_vendedor)
+      .input('id_nova_regiao', sql.Int, parseInt(id_nova_regiao))
+      .execute('NOME_PROC_MOVER_REGIAO_VENDEDOR'); // <-- Insira o nome da procedure aqui
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
+
+    res.json({ mensagem: 'Região do representante atualizada com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao mover região do representante:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// 4. Retirar (desligar/excluir) representante
+app.delete('/api/vendedores', async (req, res) => {
+  const { id_vendedor, nome_vendedor, motivo } = req.body;
+  try {
+    const pool = await conn();
+    const resultado = await pool.request()
+      .input('id_vendedor', sql.Int, id_vendedor ? parseInt(id_vendedor) : null)
+      .input('nome_vendedor', sql.VarChar(150), nome_vendedor)
+      .input('motivo', sql.VarChar(255), motivo)
+      .execute('NOME_PROC_RETIRAR_VENDEDOR'); // <-- Insira o nome da procedure aqui
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
+
+    res.json({ mensagem: 'Representante retirado com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao retirar representante:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
