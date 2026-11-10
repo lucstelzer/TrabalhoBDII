@@ -370,3 +370,34 @@ app.delete('/api/vendedores', async (req, res) => {
     res.status(500).json({ erro: err.message });
   }
 });
+
+// ==========================================
+// ROTAS DA ABA DE PRODUTOS
+// ==========================================
+
+// Excluir produto (preparado para vincular a procedure posteriormente)
+app.delete('/api/produtos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { motivo } = req.body || {};
+  try {
+    // Quando criar a procedure no banco, descomente o bloco abaixo e insira o nome:
+    /*
+    const pool = await conn();
+    const resultado = await pool.request()
+      .input('id_produto', sql.Int, parseInt(id))
+      .input('motivo', sql.VarChar(255), motivo || null)
+      .execute('NOME_PROC_EXCLUIR_PRODUTO'); // <-- Insira o nome da procedure aqui
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
+    */
+
+    console.log(`[PRODUTOS] Exclusão solicitada para produto ID: ${id}`);
+    res.json({ mensagem: 'Produto excluído com sucesso (estrutura pronta para a procedure).' });
+  } catch (err) {
+    console.error('Erro ao excluir produto:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});

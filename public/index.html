@@ -68,7 +68,6 @@
       <div class="user-avatar"><i data-lucide="shield-check"></i></div>
       <div class="user-meta">
         <strong>Operador Comercial</strong>
-        <span>Sessão Local Ativa</span>
       </div>
     </div>
   </aside>
@@ -86,9 +85,6 @@
       <div>
         <h2 id="page-title">Carteira de Clientes</h2>
         <p id="page-subtitle" class="subtitle">Gestão de compradores corporativos e residenciais</p>
-      </div>
-      <div class="badge-policy">
-        <i data-lucide="lock"></i> Política: Exclusividade Territorial Ativa
       </div>
     </header>
 
@@ -164,9 +160,14 @@
               <i data-lucide="search"></i>
               <input type="text" id="busca-produto" placeholder="Filtrar por modelo, código ou categoria...">
             </div>
-            <button class="btn btn-primary" id="btn-novo-produto">
-              <i data-lucide="plus"></i> Cadastrar Produto
-            </button>
+            <div class="header-actions">
+              <button class="btn btn-danger" id="btn-excluir-produto">
+                <i data-lucide="trash-2"></i> Excluir Produto
+              </button>
+              <button class="btn btn-primary" id="btn-novo-produto">
+                <i data-lucide="plus"></i> Cadastrar Produto
+              </button>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="data-table">
@@ -176,6 +177,7 @@
                   <th>Categoria / Capacidade</th>
                   <th>Preço de Catálogo (R$)</th>
                   <th>Estoque</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="tbody-produtos">
@@ -563,6 +565,32 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-close="modal-produto">Cancelar</button>
           <button type="submit" class="btn btn-primary">Gravar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Excluir Produto -->
+  <div class="modal-overlay" id="modal-excluir-produto">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Excluir Produto</h3>
+        <button class="modal-close" data-close="modal-excluir-produto">&times;</button>
+      </div>
+      <form id="form-excluir-produto" class="form-grid">
+        <div class="form-group">
+          <label for="excluir-prod-selecao">Selecione o Produto *</label>
+          <select id="excluir-prod-selecao" required>
+            <option value="">Selecione o produto a excluir...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="excluir-prod-motivo">Motivo da Exclusão (Opcional)</label>
+          <input type="text" id="excluir-prod-motivo" placeholder="Ex: Produto descontinuado, erro de cadastro...">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-excluir-produto">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
         </div>
       </form>
     </div>
