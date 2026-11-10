@@ -1,5 +1,18 @@
 const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
+const titulos = {
+  "clientes": ["Carteira de Clientes", "Gestão de compradores corporativos e residenciais"],
+  "vendedores": ["Quadro de Representantes", "Gestão de representantes comerciais por território"],
+  "produtos": ["Catálogo de Produtos", "Equipamentos de climatização e controle de estoque"],
+  "pedidos": ["Novo Pedido", "Emissão de pedidos de climatização"],
+  "rel-regiao": ["Relatório 1: Total por Região", "Faturamento total consolidado por região comercial"],
+  "rel-clientes": ["Relatório 2: Total por Cliente", "Valor total vendido para cada cliente"],
+  "rel-vendedor": ["Relatório 3: Total por Vendedor", "Desempenho de vendas por representante"],
+  "rel-clienteRegiao": ["Relatório 4: Clientes por Região", "Listagem de clientes de determinada região"],
+  "rel-produtos": ["Relatório 5: Total por Produto", "Ranking de faturamento e volume por equipamento"],
+  "rel-comissoes": ["Relatório 6: Extrato de Comissões", "Detalhamento de comissões por representante e produto"]
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   setupCalculoPedido();
   setupModais();
@@ -205,25 +218,42 @@ function setupModais() {
     });
   });
 
-
-
   const formTransfCliente = document.getElementById("form-transferir-cliente");
   if (formTransfCliente) {
-    formTransfCliente.addEventListener("submit", (e) => {
+    formTransfCliente.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nomeCli = document.getElementById("transf-cli-nome").value;
-      const novaRegiao = document.getElementById("transf-cli-regiao").value;
+      const selectCli = document.getElementById("transf-cli-nome");
+      const selectRegiao = document.getElementById("transf-cli-regiao");
 
-      document.querySelectorAll("#tbody-clientes tr").forEach(tr => {
-        const tdNome = tr.querySelector("td:first-child");
-        const tdRegiao = tr.querySelector(".col-regiao") || tr.querySelector("td:last-child");
-        if (tdNome && tdNome.textContent.trim().toLowerCase() === nomeCli.trim().toLowerCase() && tdRegiao) {
-          tdRegiao.textContent = novaRegiao;
+      const valorCli = selectCli.value;
+      const idCliente = !isNaN(Number(valorCli)) && valorCli !== "" ? Number(valorCli) : null;
+      const nomeCli = selectCli.options[selectCli.selectedIndex]?.dataset?.nome ||
+        selectCli.options[selectCli.selectedIndex]?.textContent ||
+        valorCli;
+      const idNovaRegiao = Number(selectRegiao.value);
+
+      try {
+        const resposta = await fetch("/api/clientes/regiao", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_cliente: idCliente,
+            nome_razao_social: nomeCli,
+            id_nova_regiao: idNovaRegiao
+          })
+        });
+
+        if (!resposta.ok) {
+          const erroDados = await resposta.json().catch(() => ({}));
+          throw new Error(erroDados.erro || `Status ${resposta.status}`);
         }
-      });
 
-      if (modalTransfCli) modalTransfCli.classList.remove("active");
-      formTransfCliente.reset();
+        if (modalTransfCli) modalTransfCli.classList.remove("active");
+        formTransfCliente.reset();
+        await showClientes();
+      } catch (err) {
+        console.error("Falha ao transferir região no banco:", err.message);
+      }
     });
   }
 
@@ -468,7 +498,6 @@ async function totalPorRegiao(nomeRegiao) {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes(dados);
   } catch (err) {
@@ -598,7 +627,6 @@ async function showClientes() {
     }
     const clientes = await resposta.json();
     if (!Array.isArray(clientes)) return;
-    console.log('Exemplo de cliente retornado por /api/clientes:', clientes[0]);
 
     listaClientesCache = clientes;
     renderizarPainelClientes(clientes);
@@ -622,7 +650,9 @@ async function showClientes() {
       }
       if (selectTransfCli) {
         const optTransf = document.createElement('option');
-        optTransf.value = cliente.nome_razao_social;
+        const idExtraido = extrairCampo(cliente, ['id_cliente', 'id', 'ID', 'cod_cliente'], /id.*cli|cli.*id|^id$/i);
+        optTransf.value = idExtraido ?? cliente.nome_razao_social;
+        optTransf.dataset.nome = cliente.nome_razao_social;
         optTransf.textContent = cliente.nome_razao_social;
         selectTransfCli.appendChild(optTransf);
       }
@@ -699,7 +729,6 @@ async function totalPorCliente(nomeCliente) {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes2(dados);
   } catch (err) {
@@ -768,7 +797,6 @@ async function totalComissaoVendedor(nomeVendedor) {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes6(dados);
   } catch (err) {
@@ -839,7 +867,6 @@ async function totalPorProduto(termo = '') {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes5(dados);
   } catch (err) {
@@ -924,7 +951,6 @@ async function totalPorVendedor(nomeVendedor) {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes3(dados);
   } catch (err) {
@@ -999,7 +1025,6 @@ async function clientesPorRegiao(nomeRegiao) {
     }
 
     const dados = await resposta.json();
-    console.log('Informações recebidas:', dados);
 
     renderizarInformacoes4(dados);
   } catch (err) {
@@ -1019,14 +1044,13 @@ async function showCidades() {
     }
     const cidades = await resposta.json();
     if (!Array.isArray(cidades)) return;
-    console.log("Exemplo de cidade retornada por /api/cidades:", cidades[0]);
 
     selectCidade.innerHTML = '<option value="">Selecione uma cidade...</option>';
 
     cidades.forEach(cidade => {
       const option = document.createElement("option");
-      const id = cidade.id_cidade ?? cidade.id ?? Object.values(cidade).find(v => typeof v === "number");
-      const nome = cidade.nome_cidade ?? cidade.nome ?? cidade.cidade ?? Object.values(cidade).find(v => typeof v === "string");
+      const id = cidade.id_cidade;
+      const nome = cidade.nome;
       if (id !== undefined && nome !== undefined) {
         mapaCidades[id] = nome;
       }

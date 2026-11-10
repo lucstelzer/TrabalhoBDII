@@ -176,3 +176,28 @@ app.post('/api/clientes', async (req, res) => {
     res.status(500).json({ erro: err.message });
   }
 });
+
+app.put('/api/clientes/regiao', async (req, res) => {
+  const { id_cliente, nome_razao_social, id_nova_regiao } = req.body;
+  try {
+    const pool = await conn();
+    let idFinal = id_cliente;
+
+    if (!idFinal && nome_razao_social) {
+      const buscaId = await pool.request()
+        .input('nome', sql.VarChar(100), nome_razao_social)
+        .query('SELECT id_cliente FROM cliente WHERE nome_razao_social = @nome');
+      idFinal = buscaId.recordset[0]?.id_cliente;
+    }
+
+    await pool.request()
+      .input('id_cliente', sql.Int, idFinal)
+      .input('id_nova_regiao', sql.Int, id_nova_regiao)
+      .execute('ReatribuirClienteRegiao');
+
+    res.json({ mensagem: 'Região do cliente atualizada com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao transferir região do cliente:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
