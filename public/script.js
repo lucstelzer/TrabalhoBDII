@@ -163,19 +163,71 @@ async function carregarDadosNovoPedido() {
     }
   }
 
-  if (selectProd) {
+  const selectExcluirProd = document.getElementById("excluir-prod-selecao");
+  const tbodyProdutos = document.getElementById("tbody-produtos");
+
+  if (selectProd || selectExcluirProd || tbodyProdutos) {
     try {
       const resProd = await fetch("/api/produtos-catalogo");
       if (resProd.ok) {
         const produtos = await resProd.json();
-        selectProd.innerHTML = '<option value="">Selecione o modelo do catálogo...</option>';
+        if (selectProd) {
+          selectProd.innerHTML = '<option value="">Selecione o modelo do catálogo...</option>';
+        }
+        if (selectExcluirProd) {
+          selectExcluirProd.innerHTML = '<option value="">Selecione o produto a excluir...</option>';
+        }
+        if (tbodyProdutos) {
+          tbodyProdutos.innerHTML = '';
+        }
+
         produtos.forEach(p => {
-          const opt = document.createElement("option");
-          opt.value = p.id_produto;
-          opt.textContent = p.descricao;
-          opt.dataset.preco = p.preco_tabela;
-          selectProd.appendChild(opt);
+          const id = p.id_produto;
+          const descricao = p.descricao || `Produto #${id}`;
+          const preco = p.preco_tabela;
+
+          if (selectProd) {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = descricao;
+            opt.dataset.preco = preco;
+            selectProd.appendChild(opt);
+          }
+
+          if (selectExcluirProd) {
+            const optEx = document.createElement("option");
+            optEx.value = id;
+            optEx.textContent = `${descricao} - ${formatBRL(preco)}`;
+            selectExcluirProd.appendChild(optEx);
+          }
+
+          if (tbodyProdutos) {
+            const tr = document.createElement("tr");
+            tr.dataset.idProduto = id;
+            tr.innerHTML = `
+              <td><strong>${descricao}</strong></td>
+              <td>${p.codigo_modelo || 'Climatização'}</td>
+              <td>${formatBRL(preco)}</td>
+              <td>${p.estoque != null ? p.estoque + ' un.' : '<span class="rep-tag" style="margin:0;">Disponível</span>'}</td>
+              <td>
+                <button type="button" class="btn btn-danger btn-sm btn-excluir-linha-prod" data-id="${id}">
+                  <i data-lucide="trash-2"></i> Excluir
+                </button>
+              </td>
+            `;
+
+            const btnEx = tr.querySelector(".btn-excluir-linha-prod");
+            if (btnEx) {
+              btnEx.addEventListener("click", () => {
+                removerProdutoInterface(id, descricao);
+              });
+            }
+
+            tbodyProdutos.appendChild(tr);
+          }
         });
+
+        lucide.createIcons();
       }
     } catch (err) {
       console.error("Erro ao carregar produtos para pedido:", err.message);
@@ -288,6 +340,33 @@ function setupCalculoPedido() {
   }
 }
 
+function removerProdutoInterface(idProduto, nomeProduto) {
+  if (!confirm(`Deseja realmente excluir o produto "${nomeProduto}"?`)) {
+    return;
+  }
+  // Notifica endpoint (que está pronto no backend para receber a procedure)
+  fetch(`/api/produtos/${encodeURIComponent(idProduto)}`, { method: "DELETE" }).catch(() => {});
+
+  // Remove da tabela
+  document.querySelectorAll("#tbody-produtos tr").forEach(tr => {
+    if (tr.dataset.idProduto == idProduto || tr.textContent.includes(nomeProduto)) {
+      tr.remove();
+    }
+  });
+
+  // Remove dos selects
+  ["ped-produto", "excluir-prod-selecao"].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (sel) {
+      Array.from(sel.options).forEach(opt => {
+        if (opt.value == idProduto) opt.remove();
+      });
+    }
+  });
+
+  alert(`Produto "${nomeProduto}" excluído com sucesso! (Pronto para sua proc)`);
+}
+
 function setupModais() {
   const modalCli = document.getElementById("modal-cliente");
   const btnNovoCliente = document.getElementById("btn-novo-cliente");
@@ -306,6 +385,9 @@ function setupModais() {
 
   const modalProd = document.getElementById("modal-produto");
   const btnNovoProduto = document.getElementById("btn-novo-produto");
+
+  const modalExcluirProd = document.getElementById("modal-excluir-produto");
+  const btnExcluirProd = document.getElementById("btn-excluir-produto");
 
   const modalCancPed = document.getElementById("modal-cancelar-pedido");
   const btnCancPed = document.getElementById("btn-cancelar-pedido");
@@ -343,6 +425,12 @@ function setupModais() {
   if (btnNovoProduto && modalProd) {
     btnNovoProduto.addEventListener("click", () => {
       modalProd.classList.add("active");
+    });
+  }
+
+  if (btnExcluirProd && modalExcluirProd) {
+    btnExcluirProd.addEventListener("click", () => {
+      modalExcluirProd.classList.add("active");
     });
   }
 
@@ -519,6 +607,84 @@ function setupModais() {
       }
       if (modalCancPed) modalCancPed.classList.remove("active");
       formCancelarPedido.reset();
+    });
+  }
+
+  const formExcluirProduto = document.getElementById("form-excluir-produto");
+  if (formExcluirProduto) {
+    formExcluirProduto.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const select = document.getElementById("excluir-prod-selecao");
+      const id = select.value;
+      const nome = select.options[select.selectedIndex]?.text || id;
+
+      if (!id) {
+        alert("Selecione um produto para excluir.");
+        return;
+      }
+
+      removerProdutoInterface(id, nome);
+      if (modalExcluirProd) modalExcluirProd.classList.remove("active");
+      formExcluirProduto.reset();
+    });
+  }
+
+  const formNovoProduto = document.getElementById("form-novo-produto");
+  if (formNovoProduto) {
+    formNovoProduto.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("prod-nome").value;
+      const categoria = document.getElementById("prod-categoria").value;
+      const preco = parseFloat(document.getElementById("prod-preco").value) || 0;
+      const estoque = parseInt(document.getElementById("prod-estoque").value) || 0;
+
+      const tbody = document.getElementById("tbody-produtos");
+      const idTemp = Date.now();
+      if (tbody) {
+        const tr = document.createElement("tr");
+        tr.dataset.idProduto = idTemp;
+        tr.innerHTML = `
+          <td><strong>${nome}</strong></td>
+          <td>${categoria}</td>
+          <td>${formatBRL(preco)}</td>
+          <td>${estoque} un.</td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm btn-excluir-linha-prod" data-id="${idTemp}">
+              <i data-lucide="trash-2"></i> Excluir
+            </button>
+          </td>
+        `;
+        const btnEx = tr.querySelector(".btn-excluir-linha-prod");
+        if (btnEx) {
+          btnEx.addEventListener("click", () => {
+            removerProdutoInterface(idTemp, nome);
+          });
+        }
+        tbody.appendChild(tr);
+        lucide.createIcons();
+      }
+
+      // Adiciona aos selects de pedido e exclusão
+      const selPed = document.getElementById("ped-produto");
+      if (selPed) {
+        const optPed = document.createElement("option");
+        optPed.value = idTemp;
+        optPed.textContent = nome;
+        optPed.dataset.preco = preco;
+        selPed.appendChild(optPed);
+      }
+
+      const selExc = document.getElementById("excluir-prod-selecao");
+      if (selExc) {
+        const optExc = document.createElement("option");
+        optExc.value = idTemp;
+        optExc.textContent = `${nome} - ${formatBRL(preco)}`;
+        selExc.appendChild(optExc);
+      }
+
+      if (modalProd) modalProd.classList.remove("active");
+      formNovoProduto.reset();
+      alert(`Produto "${nome}" adicionado na interface com sucesso!`);
     });
   }
 
