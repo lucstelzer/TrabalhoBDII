@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBuscaProdutos();
   setupBuscaVendedores();
   showRegioes2();
+  showCidades();
+  formCliente();
 });
 
 function setupMenuMobile() {
@@ -337,11 +339,8 @@ function setupModais() {
 
   const buscaCliente = document.getElementById("busca-cliente");
   if (buscaCliente) {
-    buscaCliente.addEventListener("input", (e) => {
-      const termo = e.target.value.toLowerCase().trim();
-      document.querySelectorAll("#tbody-clientes tr").forEach(tr => {
-        tr.style.display = tr.textContent.toLowerCase().includes(termo) ? "" : "none";
-      });
+    buscaCliente.addEventListener("input", () => {
+      filtrarPainelClientes();
     });
   }
 
@@ -378,6 +377,9 @@ async function showRegioes() {
     });
 
     regioes.forEach(regiao => {
+      if (regiao.id_regiao !== undefined && regiao.nome_regiao) {
+        mapaRegioes[regiao.id_regiao] = regiao.nome_regiao;
+      }
       if (selectElement) {
         const option = document.createElement('option');
         option.value = regiao.nome_regiao;
@@ -387,12 +389,16 @@ async function showRegioes() {
       [selectCliRegiao, selectVendRegiao, selectTransfCliRegiao, selectMoverVendRegiao].forEach(sel => {
         if (sel) {
           const opt = document.createElement('option');
-          opt.value = regiao.nome_regiao;
+          opt.value = regiao.id_regiao;
           opt.textContent = regiao.nome_regiao;
           sel.appendChild(opt);
         }
       });
     });
+
+    if (listaClientesCache.length > 0) {
+      renderizarPainelClientes(listaClientesCache);
+    }
     if (selectElement) {
       selectElement.addEventListener('change', (event) => {
         const nomeSelecionado = event.target.value;
@@ -470,8 +476,119 @@ async function totalPorRegiao(nomeRegiao) {
   }
 }
 
+let mapaCidades = {};
+let mapaRegioes = {};
+let listaClientesCache = [];
+
+function extrairCampo(obj, chavesExatas, regexChave) {
+  if (!obj) return undefined;
+  for (const ch of chavesExatas) {
+    if (obj[ch] !== undefined && obj[ch] !== null && obj[ch] !== '') return obj[ch];
+  }
+  if (regexChave) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (regexChave.test(k) && v !== undefined && v !== null && v !== '') return v;
+    }
+  }
+  return undefined;
+}
+
+function normalizarTexto(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function obterDadosLinhaCliente(cliente) {
+  const nome = extrairCampo(cliente, ['nome_razao_social', 'Cliente'], /razao|cliente/i) ?? cliente.nome ?? '-';
+  const docBruto = extrairCampo(cliente, ['cpf_cnpj', 'CPF_CNPJ', 'documento', 'cpf', 'cnpj'], /cpf|cnpj|doc/i);
+  const telBruto = extrairCampo(cliente, ['telefone', 'Telefone', 'tel', 'contato'], /tel|cel|fone|contato/i);
+  const doc = docBruto ? formatarCpfCnpj(docBruto) : '-';
+  const telefone = telBruto ? formatarTelefone(telBruto) : '-';
+
+  const nomeCidadeDireto = extrairCampo(
+    cliente,
+    ['nome_cidade', 'NomeCidade', 'Cidade', 'cidade', 'nome', 'Nome', 'municipio', 'nome_municipio'],
+    /^(?!.*(id|fk|cod)).*(cidad|municip)/i
+  );
+  const idCidade = extrairCampo(cliente, ['fk_cidade', 'id_cidade', 'cod_cidade'], /(id|fk|cod).*cidad|cidad.*(id|fk|cod)/i);
+  const cidade = nomeCidadeDireto ?? (idCidade !== undefined ? (mapaCidades[idCidade] ?? idCidade) : '-');
+
+  const nomeRegiaoDireto = extrairCampo(
+    cliente,
+    ['nome_regiao', 'NomeRegiao', 'Regiao', 'regiao'],
+    /^(?!.*(id|fk|cod)).*regi/i
+  );
+  const idRegiao = extrairCampo(cliente, ['fk_regiao', 'id_regiao', 'cod_regiao'], /(id|fk|cod).*regi|regi.*(id|fk|cod)/i);
+  const regiao = nomeRegiaoDireto ?? (idRegiao !== undefined ? (mapaRegioes[idRegiao] ?? idRegiao) : '-');
+
+  return { nome, doc, telefone, cidade, regiao };
+}
+
+function filtrarPainelClientes() {
+  const inputBusca = document.getElementById('busca-cliente');
+  const termoBruto = inputBusca ? inputBusca.value.trim() : '';
+
+  if (!termoBruto) {
+    renderizarPainelClientes(listaClientesCache);
+    return;
+  }
+
+  const termoNormalizado = normalizarTexto(termoBruto);
+  const termoDigitos = termoBruto.replace(/\D/g, '');
+
+  const filtrados = listaClientesCache.filter(cliente => {
+    const { nome, doc, cidade } = obterDadosLinhaCliente(cliente);
+
+    const bateNome = normalizarTexto(nome).includes(termoNormalizado);
+    const bateCidade = normalizarTexto(cidade).includes(termoNormalizado);
+
+    const docFormatado = normalizarTexto(doc);
+    const docDigitos = String(doc).replace(/\D/g, '');
+    const bateDoc = docFormatado.includes(termoNormalizado) ||
+      (termoDigitos.length > 0 && docDigitos.includes(termoDigitos));
+
+    return bateNome || bateDoc || bateCidade;
+  });
+
+  renderizarPainelClientes(filtrados);
+}
+
+function renderizarPainelClientes(clientes) {
+  const tbody = document.getElementById('tbody-clientes');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!clientes || clientes.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center;">Nenhum cliente encontrado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  clientes.forEach(cliente => {
+    const tr = document.createElement('tr');
+    const { nome, doc, telefone, cidade, regiao } = obterDadosLinhaCliente(cliente);
+
+    tr.innerHTML = `
+      <td>${nome}</td>
+      <td>${doc}</td>
+      <td>${telefone}</td>
+      <td>${cidade}</td>
+      <td class="col-regiao">${regiao}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
 async function showClientes() {
-  const selectElement = document.getElementById('rel2-select-clientes');
+  const selectElement = document.getElementById('rel2-select-clientes') || document.getElementById('rel2-select-cliente');
   const selectTransfCli = document.getElementById('transf-cli-nome');
   const selectPedCli = document.getElementById('ped-cliente');
   try {
@@ -481,6 +598,10 @@ async function showClientes() {
     }
     const clientes = await resposta.json();
     if (!Array.isArray(clientes)) return;
+    console.log('Exemplo de cliente retornado por /api/clientes:', clientes[0]);
+
+    listaClientesCache = clientes;
+    renderizarPainelClientes(clientes);
 
     if (selectElement) {
       selectElement.innerHTML = '<option value="">Selecione um cliente...</option>';
@@ -513,12 +634,12 @@ async function showClientes() {
       }
     });
     if (selectElement) {
-      selectElement.addEventListener('change', (event) => {
+      selectElement.onchange = (event) => {
         const nomeSelecionado = event.target.value;
         if (nomeSelecionado) {
           totalPorCliente(nomeSelecionado);
         }
-      });
+      };
     }
   } catch (err) {
     console.error('Erro ao carregar clientes no front-end:', err.message);
@@ -884,4 +1005,132 @@ async function clientesPorRegiao(nomeRegiao) {
   } catch (err) {
     console.error('Falha oa obter dados:', err.message);
   }
+}
+
+
+async function showCidades() {
+  const selectCidade = document.getElementById("cli-cidade");
+  if (!selectCidade) return;
+
+  try {
+    const resposta = await fetch("/api/cidades");
+    if (!resposta.ok) {
+      throw new Error(`Erro na requisição: ${resposta.status}`);
+    }
+    const cidades = await resposta.json();
+    if (!Array.isArray(cidades)) return;
+    console.log("Exemplo de cidade retornada por /api/cidades:", cidades[0]);
+
+    selectCidade.innerHTML = '<option value="">Selecione uma cidade...</option>';
+
+    cidades.forEach(cidade => {
+      const option = document.createElement("option");
+      const id = cidade.id_cidade ?? cidade.id ?? Object.values(cidade).find(v => typeof v === "number");
+      const nome = cidade.nome_cidade ?? cidade.nome ?? cidade.cidade ?? Object.values(cidade).find(v => typeof v === "string");
+      if (id !== undefined && nome !== undefined) {
+        mapaCidades[id] = nome;
+      }
+      option.value = id;
+      option.textContent = nome;
+      selectCidade.appendChild(option);
+    });
+
+    if (listaClientesCache.length > 0) {
+      renderizarPainelClientes(listaClientesCache);
+    }
+  } catch (err) {
+    console.error("Erro ao carregar cidades no front-end:", err.message);
+  }
+}
+
+function formatarCpfCnpj(valor) {
+  const digitos = String(valor || "").replace(/\D/g, "").slice(0, 14);
+
+  if (digitos.length <= 11) {
+    return digitos
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+
+  return digitos
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function formatarTelefone(valor) {
+  const digitos = String(valor || "").replace(/\D/g, "").slice(0, 11);
+
+  if (digitos.length <= 10) {
+    return digitos
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  }
+
+  return digitos
+    .replace(/^(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+}
+
+function formCliente() {
+  const formulario = document.getElementById("form-novo-cliente");
+  const modalCli = document.getElementById("modal-cliente");
+  const inputDocCli = document.getElementById("cli-doc");
+  const inputDocVend = document.getElementById("vend-doc");
+  const inputTelCli = document.getElementById("cli-tel");
+  const inputTelVend = document.getElementById("vend-tel");
+
+  [inputDocCli, inputDocVend].forEach(input => {
+    if (input) {
+      input.addEventListener("input", (e) => {
+        e.target.value = formatarCpfCnpj(e.target.value);
+      });
+    }
+  });
+
+  [inputTelCli, inputTelVend].forEach(input => {
+    if (input) {
+      input.addEventListener("input", (e) => {
+        e.target.value = formatarTelefone(e.target.value);
+      });
+    }
+  });
+
+  if (!formulario) return;
+
+  formulario.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nomeCliente = document.getElementById("cli-nome").value.trim();
+    const cpf_cnpj = formatarCpfCnpj(document.getElementById("cli-doc").value);
+    const telCliente = formatarTelefone(document.getElementById("cli-tel").value);
+    const fkRegiao = Number(document.getElementById("cli-regiao").value);
+    const fkCidade = Number(document.getElementById("cli-cidade").value);
+
+    try {
+      const resposta = await fetch("/api/clientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome_razao_social: nomeCliente,
+          cpf_cnpj,
+          telefone: telCliente,
+          fk_regiao: fkRegiao,
+          fk_cidade: fkCidade
+        })
+      });
+
+      if (!resposta.ok) {
+        throw new Error(`Erro ao cadastrar cliente: ${resposta.status}`);
+      }
+
+      if (modalCli) modalCli.classList.remove("active");
+      formulario.reset();
+      showClientes();
+    } catch (err) {
+      console.error("Falha ao cadastrar cliente:", err.message);
+    }
+  });
 }
