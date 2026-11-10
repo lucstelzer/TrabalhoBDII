@@ -205,17 +205,55 @@ app.post('/api/clientes', async (req, res) => {
   const { nome_razao_social, cpf_cnpj, telefone, fk_regiao, fk_cidade } = req.body;
   try {
     const pool = await conn();
-    await pool.request()
-      .input('nome_razao_social', sql.VarChar(100), nome_razao_social)
+    const resultado = await pool.request()
+      .input('nome_razao_social', sql.VarChar(150), nome_razao_social)
       .input('cpf_cnpj', sql.VarChar(20), cpf_cnpj)
       .input('telefone', sql.VarChar(20), telefone)
-      .input('fk_regiao', sql.Int, fk_regiao)
-      .input('fk_cidade', sql.Int, fk_cidade)
+      .input('fk_regiao', sql.Int, parseInt(fk_regiao))
+      .input('fk_cidade', sql.Int, parseInt(fk_cidade))
       .execute('inserirCliente');
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
 
     res.status(201).json({ mensagem: 'Cliente cadastrado com sucesso!' });
   } catch (err) {
     console.error('Erro ao cadastrar cliente:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+app.put('/api/clientes/regiao', async (req, res) => {
+  const { id_cliente, nome_razao_social, id_nova_regiao } = req.body;
+  try {
+    const pool = await conn();
+    let idFinal = parseInt(id_cliente);
+
+    if (isNaN(idFinal) && nome_razao_social) {
+      const busca = await pool.request()
+        .input('nome', sql.VarChar(150), nome_razao_social)
+        .execute('BuscarClienteVendedor');
+      const encontrado = busca.recordset?.find(
+        c => c.nome_razao_social?.toLowerCase() === nome_razao_social.toLowerCase()
+      ) || busca.recordset?.[0];
+      idFinal = encontrado?.id_cliente;
+    }
+
+    const resultado = await pool.request()
+      .input('id_cliente', sql.Int, idFinal)
+      .input('id_nova_regiao', sql.Int, parseInt(id_nova_regiao))
+      .execute('ReatribuirClienteRegiao');
+
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
+    }
+
+    res.json({ mensagem: 'Região do cliente atualizada com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao transferir região do cliente:', err.message);
     res.status(500).json({ erro: err.message });
   }
 });

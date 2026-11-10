@@ -107,22 +107,37 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
 async function carregarDadosNovoPedido() {
   const selectCli = document.getElementById("ped-cliente");
+  const selectTransfCli = document.getElementById("transf-cli-nome");
   const selectProd = document.getElementById("ped-produto");
 
-  if (selectCli) {
+  if (selectCli || selectTransfCli) {
     try {
       const resCli = await fetch("/api/clientes-vendedores");
       if (resCli.ok) {
         const clientes = await resCli.json();
-        selectCli.innerHTML = '<option value="">Selecione o cliente cadastrado...</option>';
+        if (selectCli) {
+          selectCli.innerHTML = '<option value="">Selecione o cliente cadastrado...</option>';
+        }
+        if (selectTransfCli) {
+          selectTransfCli.innerHTML = '<option value="">Selecione o cliente...</option>';
+        }
         clientes.forEach(c => {
-          const opt = document.createElement("option");
-          opt.value = c.id_cliente;
-          opt.textContent = c.nome_razao_social;
-          opt.dataset.idVendedor = c.id_vendedor;
-          opt.dataset.nomeVendedor = c.vendedor;
-          opt.dataset.nomeRegiao = c.nome_regiao;
-          selectCli.appendChild(opt);
+          if (selectCli) {
+            const opt = document.createElement("option");
+            opt.value = c.id_cliente;
+            opt.textContent = c.nome_razao_social;
+            opt.dataset.idVendedor = c.id_vendedor;
+            opt.dataset.nomeVendedor = c.vendedor;
+            opt.dataset.nomeRegiao = c.nome_regiao;
+            selectCli.appendChild(opt);
+          }
+          if (selectTransfCli) {
+            const optTransf = document.createElement("option");
+            optTransf.value = c.id_cliente;
+            optTransf.dataset.nome = c.nome_razao_social;
+            optTransf.textContent = c.nome_razao_social;
+            selectTransfCli.appendChild(optTransf);
+          }
         });
       }
     } catch (err) {
@@ -368,8 +383,10 @@ function setupModais() {
         if (modalTransfCli) modalTransfCli.classList.remove("active");
         formTransfCliente.reset();
         await showClientes();
+        await carregarDadosNovoPedido();
       } catch (err) {
         console.error("Falha ao transferir região no banco:", err.message);
+        alert("Erro ao transferir cliente de região: " + err.message);
       }
     });
   }
@@ -750,7 +767,7 @@ async function showClientes() {
     if (selectElement) {
       selectElement.innerHTML = '<option value="">Selecione um cliente...</option>';
     }
-    if (selectTransfCli) {
+    if (selectTransfCli && selectTransfCli.options.length <= 1) {
       selectTransfCli.innerHTML = '<option value="">Selecione o cliente...</option>';
     }
 
@@ -762,12 +779,14 @@ async function showClientes() {
         selectElement.appendChild(option);
       }
       if (selectTransfCli) {
-        const optTransf = document.createElement('option');
         const idExtraido = extrairCampo(cliente, ['id_cliente', 'id', 'ID', 'cod_cliente'], /id.*cli|cli.*id|^id$/i);
-        optTransf.value = idExtraido ?? cliente.nome_razao_social;
-        optTransf.dataset.nome = cliente.nome_razao_social;
-        optTransf.textContent = cliente.nome_razao_social;
-        selectTransfCli.appendChild(optTransf);
+        if (idExtraido !== undefined) {
+          const optTransf = document.createElement('option');
+          optTransf.value = idExtraido;
+          optTransf.dataset.nome = cliente.nome_razao_social;
+          optTransf.textContent = cliente.nome_razao_social;
+          selectTransfCli.appendChild(optTransf);
+        }
       }
     });
 
@@ -1255,15 +1274,17 @@ function formCliente() {
       });
 
       if (!resposta.ok) {
-        throw new Error(`Erro ao cadastrar cliente: ${resposta.status}`);
+        const erroDados = await resposta.json().catch(() => ({}));
+        throw new Error(erroDados.erro || `Status ${resposta.status}`);
       }
 
       if (modalCli) modalCli.classList.remove("active");
       formulario.reset();
-      showClientes();
-      carregarDadosNovoPedido();
+      await showClientes();
+      await carregarDadosNovoPedido();
     } catch (err) {
       console.error("Falha ao cadastrar cliente:", err.message);
+      alert("Erro ao cadastrar cliente: " + err.message);
     }
   });
 }
