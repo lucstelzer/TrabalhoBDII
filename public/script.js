@@ -1,7 +1,6 @@
 const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
 document.addEventListener("DOMContentLoaded", () => {
-  initNavegacao();
   setupCalculoPedido();
   setupModais();
   lucide.createIcons();
@@ -68,41 +67,27 @@ function setupMenuMobile() {
   }
 }
 
-function initNavegacao() {
-  const titulos = {
-    "clientes": ["Carteira de Clientes", "Gestão de compradores corporativos e residenciais"],
-    "vendedores": ["Quadro Comercial", "Representantes exclusivos por divisão territorial"],
-    "produtos": ["Catálogo de Produtos", "Cadastro e controle de equipamentos de climatização"],
-    "pedidos": ["Emissão de Pedido", "Formulação e cálculo de vendas com proteção regional"],
-    "rel-regiao": ["Relatório 1: Total vendido por região", "Valor total comercializado em cada região"],
-    "rel-clientes": ["Relatório 2: Total vendido por cliente", "Histórico acumulado de compras por cliente"],
-    "rel-vendedor": ["Relatório 3: Vendas por Representante", "Totalização por vendedor com filtro textual"],
-    "rel-clienteRegiao": ["Relatório 4: Clientes por Região", "Listagem de clientes pertencentes a determinada região"],
-    "rel-produtos": ["Relatório 5: Total vendido por produto", "Volume e faturamento por modelo de ar condicionado"],
-    "rel-comissoes": ["Relatório 6: Extrato de Comissões", "Cálculo detalhado de remuneração por vendedor e produto"]
-  };
 
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".page-view").forEach(p => p.classList.remove("active"));
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".page-view").forEach(p => p.classList.remove("active"));
 
-      btn.classList.add("active");
-      const target = btn.dataset.page;
-      const targetElement = document.getElementById(`page-${target}`);
-      if (targetElement) {
-        targetElement.classList.add("active");
-      }
+    btn.classList.add("active");
+    const target = btn.dataset.page;
+    const targetElement = document.getElementById(`page-${target}`);
+    if (targetElement) {
+      targetElement.classList.add("active");
+    }
 
-      if (titulos[target]) {
-        document.getElementById("page-title").textContent = titulos[target][0];
-        document.getElementById("page-subtitle").textContent = titulos[target][1];
-      }
+    if (titulos[target]) {
+      document.getElementById("page-title").textContent = titulos[target][0];
+      document.getElementById("page-subtitle").textContent = titulos[target][1];
+    }
 
-      lucide.createIcons();
-    });
+    lucide.createIcons();
   });
-}
+});
 
 function setupCalculoPedido() {
   const inputQtd = document.getElementById("ped-qtd");
@@ -218,50 +203,7 @@ function setupModais() {
     });
   });
 
-  const formCliente = document.getElementById("form-novo-cliente");
-  if (formCliente) {
-    formCliente.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const nome = document.getElementById("cli-nome").value;
-      const doc = document.getElementById("cli-doc").value;
-      const tel = document.getElementById("cli-tel").value || "-";
-      const regiao = document.getElementById("cli-regiao").value;
-      const cidade = document.getElementById("cli-cidade").value;
 
-      const tbodyCli = document.getElementById("tbody-clientes");
-      if (tbodyCli) {
-        const tr = document.createElement("tr");
-        tr.dataset.cliente = nome;
-        tr.innerHTML = `
-          <td>${nome}</td>
-          <td>${doc}</td>
-          <td>${tel}</td>
-          <td>${cidade}</td>
-          <td class="col-regiao">${regiao}</td>
-        `;
-        tbodyCli.appendChild(tr);
-      }
-
-      const selectTransfCli = document.getElementById("transf-cli-nome");
-      if (selectTransfCli) {
-        const opt = document.createElement("option");
-        opt.value = nome;
-        opt.textContent = nome;
-        selectTransfCli.appendChild(opt);
-      }
-
-      const selectPedCli = document.getElementById("ped-cliente");
-      if (selectPedCli) {
-        const optPed = document.createElement("option");
-        optPed.value = nome;
-        optPed.textContent = nome;
-        selectPedCli.appendChild(optPed);
-      }
-
-      if (modalCli) modalCli.classList.remove("active");
-      formCliente.reset();
-    });
-  }
 
   const formTransfCliente = document.getElementById("form-transferir-cliente");
   if (formTransfCliente) {
@@ -375,40 +317,6 @@ function setupModais() {
 
       if (modalRetirarVend) modalRetirarVend.classList.remove("active");
       formRetirarVendedor.reset();
-    });
-  }
-
-  const formProduto = document.getElementById("form-novo-produto");
-  if (formProduto) {
-    formProduto.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const nome = document.getElementById("prod-nome").value;
-      const categoria = document.getElementById("prod-categoria").value;
-      const preco = parseFloat(document.getElementById("prod-preco").value) || 0;
-      const estoque = parseInt(document.getElementById("prod-estoque").value) || 0;
-
-      const tbodyProd = document.getElementById("tbody-produtos");
-      if (tbodyProd) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${nome}</td>
-          <td>${categoria}</td>
-          <td>${formatBRL(preco)}</td>
-          <td>${estoque} un.</td>
-        `;
-        tbodyProd.appendChild(tr);
-      }
-
-      const selectPedProduto = document.getElementById("ped-produto");
-      if (selectPedProduto) {
-        const opt = document.createElement("option");
-        opt.value = nome;
-        opt.textContent = `${nome} - ${formatBRL(preco)}`;
-        selectPedProduto.appendChild(opt);
-      }
-
-      if (modalProd) modalProd.classList.remove("active");
-      formProduto.reset();
     });
   }
 
