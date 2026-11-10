@@ -139,12 +139,10 @@
               <p class="subtitle">Cada representante atua exclusivamente em seu território homologado</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-secondary" id="btn-mover-regiao-vendedor">
-                <i data-lucide="arrow-left-right"></i> Mover Região
-              </button>
-              <button class="btn btn-danger" id="btn-retirar-vendedor">
-                <i data-lucide="user-minus"></i> Retirar Representante
-              </button>
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="busca-vendedor" placeholder="Pesquisar pelo nome do representante...">
+              </div>
               <button class="btn btn-primary" id="btn-novo-vendedor">
                 <i data-lucide="user-plus"></i> Novo Representante
               </button>
@@ -605,17 +603,14 @@
       <form id="form-mover-regiao-vendedor" class="form-grid">
         <div class="form-group">
           <label for="mover-vend-nome">Representante *</label>
-          <input type="text" id="mover-vend-nome" required placeholder="Digite ou selecione o representante">
+          <select id="mover-vend-nome" required>
+            <option value="">Selecione o representante...</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="mover-vend-regiao">Nova Região / Território *</label>
           <select id="mover-vend-regiao" required>
             <option value="">Selecione a região...</option>
-            <option value="Norte">Norte</option>
-            <option value="Nordeste">Nordeste</option>
-            <option value="Centro-Oeste">Centro-Oeste</option>
-            <option value="Sudeste">Sudeste</option>
-            <option value="Sul">Sul</option>
           </select>
         </div>
         <div class="modal-footer">
@@ -636,7 +631,9 @@
       <form id="form-retirar-vendedor" class="form-grid">
         <div class="form-group">
           <label for="retirar-vend-nome">Representante a ser retirado *</label>
-          <input type="text" id="retirar-vend-nome" required placeholder="Nome ou CPF/CNPJ do representante">
+          <select id="retirar-vend-nome" required>
+            <option value="">Selecione o representante...</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="retirar-vend-motivo">Motivo do Desligamento</label>

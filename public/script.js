@@ -109,9 +109,11 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 async function carregarDadosNovoPedido() {
   const selectCli = document.getElementById("ped-cliente");
   const selectTransfCli = document.getElementById("transf-cli-nome");
+  const selectMoverVend = document.getElementById("mover-vend-nome");
+  const selectRetirarVend = document.getElementById("retirar-vend-nome");
   const selectProd = document.getElementById("ped-produto");
 
-  if (selectCli || selectTransfCli) {
+  if (selectCli || selectTransfCli || selectMoverVend || selectRetirarVend) {
     try {
       const resCli = await fetch("/api/clientes-vendedores");
       if (resCli.ok) {
@@ -122,6 +124,7 @@ async function carregarDadosNovoPedido() {
         if (selectTransfCli) {
           selectTransfCli.innerHTML = '<option value="">Selecione o cliente...</option>';
         }
+        const vendedoresVistos = new Map();
         clientes.forEach(c => {
           if (selectCli) {
             const opt = document.createElement("option");
@@ -139,7 +142,21 @@ async function carregarDadosNovoPedido() {
             optTransf.textContent = c.nome_razao_social;
             selectTransfCli.appendChild(optTransf);
           }
+          if (c.id_vendedor !== undefined && c.vendedor && !vendedoresVistos.has(c.id_vendedor)) {
+            vendedoresVistos.set(c.id_vendedor, {
+              id_vendedor: c.id_vendedor,
+              nome: c.vendedor,
+              nome_regiao: c.nome_regiao
+            });
+          }
         });
+
+        if (listaVendedoresCache.length === 0 && vendedoresVistos.size > 0) {
+          const listaFallback = Array.from(vendedoresVistos.values());
+          listaVendedoresCache = listaFallback;
+          preencherSelectsVendedores(listaFallback);
+          renderizarPainelVendedores(listaFallback);
+        }
       }
     } catch (err) {
       console.error("Erro ao carregar clientes para pedido:", err.message);
@@ -355,15 +372,8 @@ function setupModais() {
   if (formTransfCliente) {
     formTransfCliente.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const selectCli = document.getElementById("transf-cli-nome");
-      const selectRegiao = document.getElementById("transf-cli-regiao");
-
-      const valorCli = selectCli.value;
-      const idCliente = !isNaN(Number(valorCli)) && valorCli !== "" ? Number(valorCli) : null;
-      const nomeCli = selectCli.options[selectCli.selectedIndex]?.dataset?.nome ||
-        selectCli.options[selectCli.selectedIndex]?.textContent ||
-        valorCli;
-      const idNovaRegiao = Number(selectRegiao.value);
+      const idCliente = Number(document.getElementById("transf-cli-nome").value);
+      const idNovaRegiao = Number(document.getElementById("transf-cli-regiao").value);
 
       try {
         const resposta = await fetch("/api/clientes/regiao", {
@@ -371,7 +381,6 @@ function setupModais() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id_cliente: idCliente,
-            nome_razao_social: nomeCli,
             id_nova_regiao: idNovaRegiao
           })
         });
@@ -431,35 +440,20 @@ function setupModais() {
     });
   }
 
-  const inputMoverVendNome = document.getElementById("mover-vend-nome");
-  if (inputMoverVendNome) {
-    inputMoverVendNome.addEventListener("input", () => {
-      delete inputMoverVendNome.dataset.idVendedor;
-    });
-  }
-
   const formMoverVendedor = document.getElementById("form-mover-regiao-vendedor");
   if (formMoverVendedor) {
     formMoverVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const inputNome = document.getElementById("mover-vend-nome");
-      const nomeVend = inputNome.value.trim();
+      const idVendedor = Number(document.getElementById("mover-vend-nome").value);
       const idNovaRegiao = Number(document.getElementById("mover-vend-regiao").value);
-
-      let idVendedor = inputNome.dataset.idVendedor ? Number(inputNome.dataset.idVendedor) : null;
-      if (!idVendedor && listaVendedoresCache.length > 0) {
-        const encontrado = encontrarVendedorNoCache(nomeVend);
-        if (encontrado) idVendedor = encontrado.id;
-      }
 
       try {
         const resposta = await fetch("/api/vendedores/regiao", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id_vendedor: idVendedor,
-            nome_vendedor: nomeVend,
-            id_nova_regiao: idNovaRegiao
+            idVendedor,
+            idNovaRegiao
           })
         });
 
@@ -470,7 +464,6 @@ function setupModais() {
 
         if (modalMoverVend) modalMoverVend.classList.remove("active");
         formMoverVendedor.reset();
-        delete inputNome.dataset.idVendedor;
         await showVendedores();
         await showClientes();
         await carregarDadosNovoPedido();
@@ -481,34 +474,19 @@ function setupModais() {
     });
   }
 
-  const inputRetirarVendNome = document.getElementById("retirar-vend-nome");
-  if (inputRetirarVendNome) {
-    inputRetirarVendNome.addEventListener("input", () => {
-      delete inputRetirarVendNome.dataset.idVendedor;
-    });
-  }
-
   const formRetirarVendedor = document.getElementById("form-retirar-vendedor");
   if (formRetirarVendedor) {
     formRetirarVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const inputNome = document.getElementById("retirar-vend-nome");
-      const termoVend = inputNome.value.trim();
+      const idVendedor = Number(document.getElementById("retirar-vend-nome").value);
       const motivo = document.getElementById("retirar-vend-motivo")?.value.trim() || "";
-
-      let idVendedor = inputNome.dataset.idVendedor ? Number(inputNome.dataset.idVendedor) : null;
-      if (!idVendedor && listaVendedoresCache.length > 0) {
-        const encontrado = encontrarVendedorNoCache(termoVend);
-        if (encontrado) idVendedor = encontrado.id;
-      }
 
       try {
         const resposta = await fetch("/api/vendedores", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id_vendedor: idVendedor,
-            nome_vendedor: termoVend,
+            idVendedor,
             motivo
           })
         });
@@ -520,7 +498,6 @@ function setupModais() {
 
         if (modalRetirarVend) modalRetirarVend.classList.remove("active");
         formRetirarVendedor.reset();
-        delete inputNome.dataset.idVendedor;
         await showVendedores();
         await carregarDadosNovoPedido();
       } catch (err) {
@@ -549,6 +526,13 @@ function setupModais() {
   if (buscaCliente) {
     buscaCliente.addEventListener("input", () => {
       filtrarPainelClientes();
+    });
+  }
+
+  const buscaVendedor = document.getElementById("busca-vendedor");
+  if (buscaVendedor) {
+    buscaVendedor.addEventListener("input", () => {
+      filtrarPainelVendedores();
     });
   }
 
@@ -895,6 +879,47 @@ function encontrarVendedorNoCache(termo) {
   return null;
 }
 
+function preencherSelectsVendedores(vendedores) {
+  const selectMoverVend = document.getElementById('mover-vend-nome');
+  const selectRetirarVend = document.getElementById('retirar-vend-nome');
+
+  [selectMoverVend, selectRetirarVend].forEach(sel => {
+    if (sel) sel.innerHTML = '<option value="">Selecione o representante...</option>';
+  });
+
+  vendedores.forEach(vendedor => {
+    const { id, nome } = obterDadosCardVendedor(vendedor);
+
+    [selectMoverVend, selectRetirarVend].forEach(sel => {
+      if (sel) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = nome;
+        sel.appendChild(opt);
+      }
+    });
+  });
+}
+
+function filtrarPainelVendedores() {
+  const inputBusca = document.getElementById('busca-vendedor');
+  const termoBruto = inputBusca ? inputBusca.value.trim() : '';
+
+  if (!termoBruto) {
+    renderizarPainelVendedores(listaVendedoresCache);
+    return;
+  }
+
+  const termoNormalizado = normalizarTexto(termoBruto);
+
+  const filtrados = listaVendedoresCache.filter(vendedor => {
+    const { nome } = obterDadosCardVendedor(vendedor);
+    return normalizarTexto(nome).includes(termoNormalizado);
+  });
+
+  renderizarPainelVendedores(filtrados);
+}
+
 function renderizarPainelVendedores(vendedores) {
   const gridVend = document.getElementById('grid-vendedores');
   if (!gridVend) return;
@@ -911,6 +936,7 @@ function renderizarPainelVendedores(vendedores) {
 
   vendedores.forEach(vendedor => {
     const { id, nome, doc, telefone, email, regiao } = obterDadosCardVendedor(vendedor);
+    const valorSelect = id !== undefined ? String(id) : nome;
 
     const iniciais = String(nome)
       .split(' ')
@@ -941,20 +967,14 @@ function renderizarPainelVendedores(vendedores) {
     `;
 
     card.querySelector('.btn-card-mover').addEventListener('click', () => {
-      const inputMoverNome = document.getElementById('mover-vend-nome');
-      if (inputMoverNome) {
-        inputMoverNome.value = nome;
-        if (id !== undefined) inputMoverNome.dataset.idVendedor = id;
-      }
+      const selectMoverNome = document.getElementById('mover-vend-nome');
+      if (selectMoverNome) selectMoverNome.value = valorSelect;
       if (modalMoverVend) modalMoverVend.classList.add('active');
     });
 
     card.querySelector('.btn-card-retirar').addEventListener('click', () => {
-      const inputRetirarNome = document.getElementById('retirar-vend-nome');
-      if (inputRetirarNome) {
-        inputRetirarNome.value = nome;
-        if (id !== undefined) inputRetirarNome.dataset.idVendedor = id;
-      }
+      const selectRetirarNome = document.getElementById('retirar-vend-nome');
+      if (selectRetirarNome) selectRetirarNome.value = valorSelect;
       if (modalRetirarVend) modalRetirarVend.classList.add('active');
     });
 
@@ -972,6 +992,7 @@ async function showVendedores() {
     if (!Array.isArray(vendedores)) return;
 
     listaVendedoresCache = vendedores;
+    preencherSelectsVendedores(vendedores);
     renderizarPainelVendedores(vendedores);
   } catch (err) {
     console.error('Erro ao carregar representantes no front-end:', err.message);

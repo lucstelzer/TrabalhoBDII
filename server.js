@@ -226,23 +226,11 @@ app.post('/api/clientes', async (req, res) => {
 });
 
 app.put('/api/clientes/regiao', async (req, res) => {
-  const { id_cliente, nome_razao_social, id_nova_regiao } = req.body;
+  const { id_cliente, id_nova_regiao } = req.body;
   try {
     const pool = await conn();
-    let idFinal = parseInt(id_cliente);
-
-    if (isNaN(idFinal) && nome_razao_social) {
-      const busca = await pool.request()
-        .input('nome', sql.VarChar(150), nome_razao_social)
-        .execute('BuscarClienteVendedor');
-      const encontrado = busca.recordset?.find(
-        c => c.nome_razao_social?.toLowerCase() === nome_razao_social.toLowerCase()
-      ) || busca.recordset?.[0];
-      idFinal = encontrado?.id_cliente;
-    }
-
     const resultado = await pool.request()
-      .input('id_cliente', sql.Int, idFinal)
+      .input('id_cliente', sql.Int, parseInt(id_cliente))
       .input('id_nova_regiao', sql.Int, parseInt(id_nova_regiao))
       .execute('ReatribuirClienteRegiao');
 
@@ -292,7 +280,7 @@ app.get('/api/vendedores', async (req, res) => {
   try {
     const pool = await conn();
     const resultado = await pool.request()
-      .execute('NOME_PROC_LISTAR_VENDEDORES'); // <-- Insira o nome da procedure aqui
+      .execute('exec ListarVendedores'); // <-- Insira o nome da procedure aqui
     res.json(resultado.recordset);
   } catch (err) {
     console.error('Erro ao listar representantes:', err.message);
@@ -311,7 +299,7 @@ app.post('/api/vendedores', async (req, res) => {
       .input('telefone', sql.VarChar(20), telefone)
       .input('email', sql.VarChar(150), email)
       .input('fk_regiao', sql.Int, parseInt(fk_regiao))
-      .execute('NOME_PROC_INSERIR_VENDEDOR'); // <-- Insira o nome da procedure aqui
+      .execute('InserirVendedor');
 
     const dados = resultado.recordset?.[0];
     if (dados && dados.erro) {
@@ -327,14 +315,13 @@ app.post('/api/vendedores', async (req, res) => {
 
 // 3. Mover região de um representante
 app.put('/api/vendedores/regiao', async (req, res) => {
-  const { id_vendedor, nome_vendedor, id_nova_regiao } = req.body;
+  const { idVendedor, idNovaRegiao } = req.body;
   try {
     const pool = await conn();
     const resultado = await pool.request()
-      .input('id_vendedor', sql.Int, id_vendedor ? parseInt(id_vendedor) : null)
-      .input('nome_vendedor', sql.VarChar(150), nome_vendedor)
-      .input('id_nova_regiao', sql.Int, parseInt(id_nova_regiao))
-      .execute('NOME_PROC_MOVER_REGIAO_VENDEDOR'); // <-- Insira o nome da procedure aqui
+      .input('idVendedor', sql.Int, parseInt(idVendedor))
+      .input('idNovaRegiao', sql.Int, parseInt(idNovaRegiao))
+      .execute('TransferirRegiaoVendedor');
 
     const dados = resultado.recordset?.[0];
     if (dados && dados.erro) {
@@ -350,12 +337,11 @@ app.put('/api/vendedores/regiao', async (req, res) => {
 
 // 4. Retirar (desligar/excluir) representante
 app.delete('/api/vendedores', async (req, res) => {
-  const { id_vendedor, nome_vendedor, motivo } = req.body;
+  const { idVendedor, motivo } = req.body;
   try {
     const pool = await conn();
     const resultado = await pool.request()
-      .input('id_vendedor', sql.Int, id_vendedor ? parseInt(id_vendedor) : null)
-      .input('nome_vendedor', sql.VarChar(150), nome_vendedor)
+      .input('idVendedor', sql.Int, parseInt(idVendedor))
       .input('motivo', sql.VarChar(255), motivo)
       .execute('NOME_PROC_RETIRAR_VENDEDOR'); // <-- Insira o nome da procedure aqui
 
