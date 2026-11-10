@@ -29,9 +29,9 @@ app.get('/api/regioes', async (req, res) => {
   try {
     const pool = await conn();
     const resultado = await pool.request().query('exec regioes');
-    res.json(resultado.recordset)
+    res.json(resultado.recordset);
   } catch (err) {
-    console.error('A consulta no banco falhou', err.message)
+    console.error('A consulta no banco falhou', err.message);
     res.status(500).json({ erro: err.message });
   }
 });
@@ -53,13 +53,56 @@ app.get('/api/regioes/:nome', async (req, res) => {
 });
 
 app.get('/api/pedidos', async (req, res) => {
+  const id = parseInt(req.query.id);
   try {
     const pool = await conn();
-    const valida = await pool.request().query('exec verificarPedido');
-    const resultado = await pool.request().query('exec cancelarPedido');
+    const resultado = await pool.request()
+      .input('id_pedido', sql.Int, id)
+      .execute('CancelarPedido');
+    res.json(resultado.recordset);
   } catch (err) {
     console.error('Erro ao cancelar pedido:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
 
+app.post('/api/pedidos', async (req, res) => {
+  const { fk_cliente, fk_vendedor, fk_produto, quantidade, preco_praticado, percentual_comissao } = req.body;
+  try {
+    const pool = await conn();
+
+    const resPedido = await pool.request()
+      .input('fk_cliente', sql.Int, fk_cliente)
+      .input('fk_vendedor', sql.Int, fk_vendedor)
+      .execute('CriarPedido');
+
+    const dadosPedido = resPedido.recordset[0];
+    if (dadosPedido && dadosPedido.erro) {
+      return res.status(400).json({ erro: dadosPedido.erro });
+    }
+
+    const idPedidoGerado = dadosPedido.id_pedido_gerado;
+
+    const resItem = await pool.request()
+      .input('fk_pedido', sql.Int, idPedidoGerado)
+      .input('fk_produto', sql.Int, fk_produto)
+      .input('quantidade', sql.Int, quantidade)
+      .input('preco_praticado', sql.Decimal(10, 2), preco_praticado)
+      .input('percentual_comissao', sql.Decimal(5, 2), percentual_comissao)
+      .execute('AdicionarItemPedido');
+
+    const dadosItem = resItem.recordset[0];
+    if (dadosItem && dadosItem.erro) {
+      return res.status(400).json({ erro: dadosItem.erro });
+    }
+
+    res.status(201).json({
+      mensagem: 'Pedido emitido com sucesso!',
+      id_pedido: idPedidoGerado
+    });
+  } catch (err) {
+    console.error('Erro ao criar pedido:', err.message);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -67,9 +110,9 @@ app.get('/api/clientes', async (req, res) => {
   try {
     const pool = await conn();
     const resultado = await pool.request().query('exec clientes');
-    res.json(resultado.recordset)
+    res.json(resultado.recordset);
   } catch (err) {
-    console.error('A consulta no banco falhou', err.message)
+    console.error('A consulta no banco falhou', err.message);
     res.status(500).json({ erro: err.message });
   }
 });
@@ -177,27 +220,27 @@ app.post('/api/clientes', async (req, res) => {
   }
 });
 
-app.put('/api/clientes/regiao', async (req, res) => {
-  const { id_cliente, nome_razao_social, id_nova_regiao } = req.body;
+app.get('/api/clientes-vendedores', async (req, res) => {
+  const nome = req.query.nome || '';
   try {
     const pool = await conn();
-    let idFinal = id_cliente;
-
-    if (!idFinal && nome_razao_social) {
-      const buscaId = await pool.request()
-        .input('nome', sql.VarChar(100), nome_razao_social)
-        .query('SELECT id_cliente FROM cliente WHERE nome_razao_social = @nome');
-      idFinal = buscaId.recordset[0]?.id_cliente;
-    }
-
-    await pool.request()
-      .input('id_cliente', sql.Int, idFinal)
-      .input('id_nova_regiao', sql.Int, id_nova_regiao)
-      .execute('ReatribuirClienteRegiao');
-
-    res.json({ mensagem: 'Região do cliente atualizada com sucesso!' });
+    const resultado = await pool.request()
+      .input('nome', sql.VarChar(150), nome)
+      .execute('BuscarClienteVendedor');
+    res.json(resultado.recordset);
   } catch (err) {
-    console.error('Erro ao transferir região do cliente:', err.message);
+    console.error('Erro ao buscar cliente/vendedor:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+app.get('/api/produtos-catalogo', async (req, res) => {
+  try {
+    const pool = await conn();
+    const resultado = await pool.request().execute('ProdutosPedido');
+    res.json(resultado.recordset);
+  } catch (err) {
+    console.error('Erro ao buscar catálogo de produtos:', err.message);
     res.status(500).json({ erro: err.message });
   }
 });
