@@ -235,6 +235,8 @@ async function carregarDadosNovoPedido() {
   }
 }
 
+let itensPedidoAtual = [];
+
 function setupCalculoPedido() {
   const selectCli = document.getElementById("ped-cliente");
   const inputVend = document.getElementById("ped-vendedor");
@@ -244,18 +246,102 @@ function setupCalculoPedido() {
   const inputComissao = document.getElementById("ped-comissao");
   const previewTotal = document.getElementById("ped-preview-total");
   const previewComissao = document.getElementById("ped-preview-comissao");
+  const btnAddItem = document.getElementById("btn-add-item-pedido");
+  const containerItens = document.getElementById("container-itens-pedido");
+  const tbodyItens = document.getElementById("tbody-itens-pedido");
+
+  const renderizarItensPedido = () => {
+    if (!containerItens || !tbodyItens) return;
+    if (itensPedidoAtual.length === 0) {
+      containerItens.style.display = "none";
+      tbodyItens.innerHTML = "";
+      return;
+    }
+
+    containerItens.style.display = "block";
+    tbodyItens.innerHTML = "";
+
+    itensPedidoAtual.forEach((item, idx) => {
+      const subtotal = item.quantidade * item.preco_praticado;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${item.descricao}</strong></td>
+        <td>${item.quantidade}</td>
+        <td>${formatBRL(item.preco_praticado)}</td>
+        <td>${item.percentual_comissao}%</td>
+        <td>${formatBRL(subtotal)}</td>
+        <td>
+          <button type="button" class="btn btn-danger btn-sm" data-idx="${idx}">
+            Remover
+          </button>
+        </td>
+      `;
+      tr.querySelector("button").addEventListener("click", () => {
+        itensPedidoAtual.splice(idx, 1);
+        renderizarItensPedido();
+        atualizarTotais();
+      });
+      tbodyItens.appendChild(tr);
+    });
+  };
 
   const atualizarTotais = () => {
-    const qtd = parseInt(inputQtd.value) || 0;
-    const preco = parseFloat(inputPreco.value) || 0;
-    const comissaoPerc = parseFloat(inputComissao.value) || 0;
+    let total = 0;
+    let comissao = 0;
 
-    const total = qtd * preco;
-    const comissao = total * (comissaoPerc / 100);
+    if (itensPedidoAtual.length > 0) {
+      itensPedidoAtual.forEach(item => {
+        const sub = item.quantidade * item.preco_praticado;
+        total += sub;
+        comissao += sub * (item.percentual_comissao / 100);
+      });
+    } else {
+      const qtd = parseInt(inputQtd.value) || 0;
+      const preco = parseFloat(inputPreco.value) || 0;
+      const comissaoPerc = parseFloat(inputComissao.value) || 0;
+
+      total = qtd * preco;
+      comissao = total * (comissaoPerc / 100);
+    }
 
     previewTotal.textContent = formatBRL(total);
     previewComissao.textContent = formatBRL(comissao);
   };
+
+  if (btnAddItem) {
+    btnAddItem.addEventListener("click", () => {
+      const fk_produto = parseInt(selectProd.value);
+      const optProd = selectProd.selectedOptions[0];
+      const descricao = optProd ? optProd.textContent : "";
+      const quantidade = parseInt(inputQtd.value) || 0;
+      const preco_praticado = parseFloat(inputPreco.value);
+      const percentual_comissao = parseFloat(inputComissao.value);
+
+      if (!fk_produto || quantidade <= 0 || isNaN(preco_praticado) || isNaN(percentual_comissao)) {
+        alert("Selecione um equipamento e preencha quantidade, preço e comissão válidos.");
+        return;
+      }
+
+      if (itensPedidoAtual.some(i => i.fk_produto === fk_produto)) {
+        alert("Este produto já foi adicionado na lista deste pedido.");
+        return;
+      }
+
+      itensPedidoAtual.push({
+        fk_produto,
+        descricao,
+        quantidade,
+        preco_praticado,
+        percentual_comissao
+      });
+
+      selectProd.value = "";
+      inputQtd.value = "1";
+      inputPreco.value = "";
+      renderizarItensPedido();
+      atualizarTotais();
+    });
+  }
 
   if (selectCli && inputVend) {
     selectCli.addEventListener("change", (e) => {
@@ -295,13 +381,26 @@ function setupCalculoPedido() {
 
       const fk_cliente = parseInt(selectCli.value);
       const fk_vendedor = parseInt(inputVend.dataset.idVendedor);
-      const fk_produto = parseInt(selectProd.value);
-      const quantidade = parseInt(inputQtd.value);
-      const preco_praticado = parseFloat(inputPreco.value);
-      const percentual_comissao = parseFloat(inputComissao.value);
 
-      if (!fk_cliente || !fk_vendedor || !fk_produto) {
-        alert("Selecione um cliente e um equipamento válidos.");
+      let itensEnvio = [...itensPedidoAtual];
+      if (itensEnvio.length === 0) {
+        const fk_produto = parseInt(selectProd.value);
+        const quantidade = parseInt(inputQtd.value);
+        const preco_praticado = parseFloat(inputPreco.value);
+        const percentual_comissao = parseFloat(inputComissao.value);
+
+        if (fk_produto && quantidade > 0 && !isNaN(preco_praticado) && !isNaN(percentual_comissao)) {
+          itensEnvio.push({
+            fk_produto,
+            quantidade,
+            preco_praticado,
+            percentual_comissao
+          });
+        }
+      }
+
+      if (!fk_cliente || !fk_vendedor || itensEnvio.length === 0) {
+        alert("Selecione um cliente e adicione ao menos um equipamento válido ao pedido.");
         return;
       }
 
@@ -312,10 +411,7 @@ function setupCalculoPedido() {
           body: JSON.stringify({
             fk_cliente,
             fk_vendedor,
-            fk_produto,
-            quantidade,
-            preco_praticado,
-            percentual_comissao
+            itens: itensEnvio
           })
         });
 
@@ -328,6 +424,8 @@ function setupCalculoPedido() {
 
         alert(`Pedido #${resultado.id_pedido} emitido com sucesso!`);
         formPedido.reset();
+        itensPedidoAtual = [];
+        renderizarItensPedido();
         inputVend.value = "";
         delete inputVend.dataset.idVendedor;
         atualizarTotais();
@@ -340,31 +438,28 @@ function setupCalculoPedido() {
   }
 }
 
-function removerProdutoInterface(idProduto, nomeProduto) {
+async function removerProdutoInterface(idProduto, nomeProduto) {
   if (!confirm(`Deseja realmente excluir o produto "${nomeProduto}"?`)) {
     return;
   }
-  // Notifica endpoint (que está pronto no backend para receber a procedure)
-  fetch(`/api/produtos/${encodeURIComponent(idProduto)}`, { method: "DELETE" }).catch(() => {});
 
-  // Remove da tabela
-  document.querySelectorAll("#tbody-produtos tr").forEach(tr => {
-    if (tr.dataset.idProduto == idProduto || tr.textContent.includes(nomeProduto)) {
-      tr.remove();
+  try {
+    const resposta = await fetch(`/api/produtos/${encodeURIComponent(idProduto)}`, {
+      method: "DELETE"
+    });
+    const dados = await resposta.json().catch(() => ({}));
+
+    if (!resposta.ok) {
+      throw new Error(dados.erro || `Status ${resposta.status}`);
     }
-  });
 
-  // Remove dos selects
-  ["ped-produto", "excluir-prod-selecao"].forEach(selId => {
-    const sel = document.getElementById(selId);
-    if (sel) {
-      Array.from(sel.options).forEach(opt => {
-        if (opt.value == idProduto) opt.remove();
-      });
-    }
-  });
-
-  alert(`Produto "${nomeProduto}" excluído com sucesso! (Pronto para sua proc)`);
+    await carregarDadosNovoPedido();
+    await totalPorProduto();
+    alert(`Produto "${nomeProduto}" excluído do banco com sucesso!`);
+  } catch (err) {
+    console.error("Falha ao excluir produto:", err.message);
+    alert("Erro ao excluir produto: " + err.message);
+  }
 }
 
 function setupModais() {
@@ -373,6 +468,10 @@ function setupModais() {
 
   const modalTransfCli = document.getElementById("modal-transferir-cliente");
   const btnTransfCli = document.getElementById("btn-transferir-cliente");
+
+  const modalRegiao = document.getElementById("modal-regiao");
+  const btnNovaRegiao = document.getElementById("btn-nova-regiao");
+  const btnNovaRegiaoVend = document.getElementById("btn-nova-regiao-vend");
 
   const modalVend = document.getElementById("modal-vendedor");
   const btnNovoVendedor = document.getElementById("btn-novo-vendedor");
@@ -403,6 +502,14 @@ function setupModais() {
       modalTransfCli.classList.add("active");
     });
   }
+
+  [btnNovaRegiao, btnNovaRegiaoVend].forEach(btn => {
+    if (btn && modalRegiao) {
+      btn.addEventListener("click", () => {
+        modalRegiao.classList.add("active");
+      });
+    }
+  });
 
   if (btnNovoVendedor && modalVend) {
     btnNovoVendedor.addEventListener("click", () => {
@@ -456,6 +563,43 @@ function setupModais() {
     });
   });
 
+  const formNovaRegiao = document.getElementById("form-nova-regiao");
+  if (formNovaRegiao) {
+    formNovaRegiao.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome_regiao = document.getElementById("reg-nome").value.trim();
+      const fk_vendedor = Number(document.getElementById("reg-vendedor").value);
+
+      try {
+        const resposta = await fetch("/api/regioes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nome_regiao,
+            fk_vendedor
+          })
+        });
+
+        if (!resposta.ok) {
+          const erroDados = await resposta.json().catch(() => ({}));
+          throw new Error(erroDados.erro || `Status ${resposta.status}`);
+        }
+
+        if (modalRegiao) modalRegiao.classList.remove("active");
+        formNovaRegiao.reset();
+        await showRegioes();
+        await showRegioes2();
+        await showVendedores();
+        await showClientes();
+        await carregarDadosNovoPedido();
+        alert(`Região "${nome_regiao}" criada com sucesso!`);
+      } catch (err) {
+        console.error("Falha ao criar região:", err.message);
+        alert("Erro ao criar região: " + err.message);
+      }
+    });
+  }
+
   const formTransfCliente = document.getElementById("form-transferir-cliente");
   if (formTransfCliente) {
     formTransfCliente.addEventListener("submit", async (e) => {
@@ -494,10 +638,9 @@ function setupModais() {
     formVendedor.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = document.getElementById("vend-nome").value.trim();
-      const cpf_cnpj = formatarCpfCnpj(document.getElementById("vend-doc").value);
       const telefone = formatarTelefone(document.getElementById("vend-tel").value);
       const email = document.getElementById("vend-email").value.trim();
-      const fk_regiao = Number(document.getElementById("vend-regiao").value);
+      const fk_cidade = Number(document.getElementById("vend-cidade").value);
 
       try {
         const resposta = await fetch("/api/vendedores", {
@@ -505,10 +648,9 @@ function setupModais() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             nome,
-            cpf_cnpj,
             telefone,
             email,
-            fk_regiao
+            fk_cidade
           })
         });
 
@@ -521,6 +663,7 @@ function setupModais() {
         formVendedor.reset();
         await showVendedores();
         await carregarDadosNovoPedido();
+        alert(`Representante "${nome}" cadastrado com sucesso!`);
       } catch (err) {
         console.error("Falha ao cadastrar representante:", err.message);
         alert("Erro ao cadastrar representante: " + err.message);
@@ -588,6 +731,7 @@ function setupModais() {
         formRetirarVendedor.reset();
         await showVendedores();
         await carregarDadosNovoPedido();
+        alert("Representante retirado com sucesso!");
       } catch (err) {
         console.error("Falha ao retirar representante:", err.message);
         alert("Erro ao retirar representante: " + err.message);
@@ -601,18 +745,25 @@ function setupModais() {
       e.preventDefault();
       const idPedido = document.getElementById("canc-ped-id").value;
       try {
-        await fetch(`/api/pedidos?id=${encodeURIComponent(idPedido)}`);
+        const resposta = await fetch(`/api/pedidos?id=${encodeURIComponent(idPedido)}`);
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) {
+          throw new Error(dados.erro || `Status ${resposta.status}`);
+        }
+        if (modalCancPed) modalCancPed.classList.remove("active");
+        formCancelarPedido.reset();
+        await totalPorProduto();
+        alert(`Pedido #${idPedido} cancelado com sucesso!`);
       } catch (err) {
         console.error("Erro ao solicitar cancelamento:", err.message);
+        alert("Erro ao cancelar pedido: " + err.message);
       }
-      if (modalCancPed) modalCancPed.classList.remove("active");
-      formCancelarPedido.reset();
     });
   }
 
   const formExcluirProduto = document.getElementById("form-excluir-produto");
   if (formExcluirProduto) {
-    formExcluirProduto.addEventListener("submit", (e) => {
+    formExcluirProduto.addEventListener("submit", async (e) => {
       e.preventDefault();
       const select = document.getElementById("excluir-prod-selecao");
       const id = select.value;
@@ -623,7 +774,7 @@ function setupModais() {
         return;
       }
 
-      removerProdutoInterface(id, nome);
+      await removerProdutoInterface(id, nome);
       if (modalExcluirProd) modalExcluirProd.classList.remove("active");
       formExcluirProduto.reset();
     });
@@ -631,60 +782,35 @@ function setupModais() {
 
   const formNovoProduto = document.getElementById("form-novo-produto");
   if (formNovoProduto) {
-    formNovoProduto.addEventListener("submit", (e) => {
+    formNovoProduto.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nome = document.getElementById("prod-nome").value;
-      const categoria = document.getElementById("prod-categoria").value;
+      const nome = document.getElementById("prod-nome").value.trim();
       const preco = parseFloat(document.getElementById("prod-preco").value) || 0;
-      const estoque = parseInt(document.getElementById("prod-estoque").value) || 0;
 
-      const tbody = document.getElementById("tbody-produtos");
-      const idTemp = Date.now();
-      if (tbody) {
-        const tr = document.createElement("tr");
-        tr.dataset.idProduto = idTemp;
-        tr.innerHTML = `
-          <td><strong>${nome}</strong></td>
-          <td>${categoria}</td>
-          <td>${formatBRL(preco)}</td>
-          <td>${estoque} un.</td>
-          <td>
-            <button type="button" class="btn btn-danger btn-sm btn-excluir-linha-prod" data-id="${idTemp}">
-              <i data-lucide="trash-2"></i> Excluir
-            </button>
-          </td>
-        `;
-        const btnEx = tr.querySelector(".btn-excluir-linha-prod");
-        if (btnEx) {
-          btnEx.addEventListener("click", () => {
-            removerProdutoInterface(idTemp, nome);
-          });
+      try {
+        const resposta = await fetch("/api/produtos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            descricao: nome,
+            preco_tabela: preco
+          })
+        });
+
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) {
+          throw new Error(dados.erro || `Status ${resposta.status}`);
         }
-        tbody.appendChild(tr);
-        lucide.createIcons();
-      }
 
-      // Adiciona aos selects de pedido e exclusão
-      const selPed = document.getElementById("ped-produto");
-      if (selPed) {
-        const optPed = document.createElement("option");
-        optPed.value = idTemp;
-        optPed.textContent = nome;
-        optPed.dataset.preco = preco;
-        selPed.appendChild(optPed);
+        if (modalProd) modalProd.classList.remove("active");
+        formNovoProduto.reset();
+        await carregarDadosNovoPedido();
+        await totalPorProduto();
+        alert(`Produto "${nome}" cadastrado no banco com sucesso!`);
+      } catch (err) {
+        console.error("Falha ao cadastrar produto:", err.message);
+        alert("Erro ao cadastrar produto: " + err.message);
       }
-
-      const selExc = document.getElementById("excluir-prod-selecao");
-      if (selExc) {
-        const optExc = document.createElement("option");
-        optExc.value = idTemp;
-        optExc.textContent = `${nome} - ${formatBRL(preco)}`;
-        selExc.appendChild(optExc);
-      }
-
-      if (modalProd) modalProd.classList.remove("active");
-      formNovoProduto.reset();
-      alert(`Produto "${nome}" adicionado na interface com sucesso!`);
     });
   }
 
@@ -761,12 +887,12 @@ async function showRegioes() {
       renderizarPainelVendedores(listaVendedoresCache);
     }
     if (selectElement) {
-      selectElement.addEventListener('change', (event) => {
+      selectElement.onchange = (event) => {
         const nomeSelecionado = event.target.value;
         if (nomeSelecionado) {
           totalPorRegiao(nomeSelecionado);
         }
-      });
+      };
     }
   } catch (err) {
     console.error('Erro ao carregar regiões no front-end:', err.message);
@@ -1012,7 +1138,17 @@ function obterDadosCardVendedor(vendedor) {
   const telBruto = extrairCampo(vendedor, ['telefone', 'Telefone', 'tel', 'contato'], /tel|cel|fone|contato/i);
   const email = extrairCampo(vendedor, ['email', 'Email', 'e_mail'], /mail/i) ?? '';
 
-  const doc = docBruto ? formatarCpfCnpj(docBruto) : 'Sem documento';
+  const nomeCidadeDireto = extrairCampo(
+    vendedor,
+    ['nome_cidade', 'NomeCidade', 'Cidade', 'cidade'],
+    /^(?!.*(id|fk|cod)).*(cidad|municip)/i
+  );
+  const idCidade = extrairCampo(vendedor, ['fk_cidade', 'id_cidade', 'cod_cidade'], /(id|fk|cod).*cidad|cidad.*(id|fk|cod)/i);
+  const cidade = nomeCidadeDireto ?? (idCidade !== undefined ? mapaCidades[idCidade] : undefined);
+
+  const doc = docBruto
+    ? formatarCpfCnpj(docBruto)
+    : (cidade ? `Base: ${cidade}` : 'Representante Comercial');
   const telefone = telBruto ? formatarTelefone(telBruto) : 'Sem telefone';
 
   const nomeRegiaoDireto = extrairCampo(
@@ -1021,7 +1157,7 @@ function obterDadosCardVendedor(vendedor) {
     /^(?!.*(id|fk|cod)).*regi/i
   );
   const idRegiao = extrairCampo(vendedor, ['fk_regiao', 'id_regiao', 'cod_regiao'], /(id|fk|cod).*regi|regi.*(id|fk|cod)/i);
-  const regiao = nomeRegiaoDireto ?? (idRegiao !== undefined ? (mapaRegioes[idRegiao] ?? idRegiao) : 'Sem região');
+  const regiao = nomeRegiaoDireto ?? (idRegiao !== undefined && idRegiao !== null ? (mapaRegioes[idRegiao] ?? idRegiao) : 'Sem região atribuída');
 
   return { id, nome, doc, telefone, email, regiao, idRegiao };
 }
@@ -1048,13 +1184,17 @@ function encontrarVendedorNoCache(termo) {
 function preencherSelectsVendedores(vendedores) {
   const selectMoverVend = document.getElementById('mover-vend-nome');
   const selectRetirarVend = document.getElementById('retirar-vend-nome');
+  const selectRegVend = document.getElementById('reg-vendedor');
 
   [selectMoverVend, selectRetirarVend].forEach(sel => {
     if (sel) sel.innerHTML = '<option value="">Selecione o representante...</option>';
   });
+  if (selectRegVend) {
+    selectRegVend.innerHTML = '<option value="">Selecione um representante...</option>';
+  }
 
   vendedores.forEach(vendedor => {
-    const { id, nome } = obterDadosCardVendedor(vendedor);
+    const { id, nome, regiao } = obterDadosCardVendedor(vendedor);
 
     [selectMoverVend, selectRetirarVend].forEach(sel => {
       if (sel) {
@@ -1064,6 +1204,14 @@ function preencherSelectsVendedores(vendedores) {
         sel.appendChild(opt);
       }
     });
+
+    if (selectRegVend) {
+      const optReg = document.createElement('option');
+      optReg.value = id;
+      const semRegiao = !regiao || regiao === 'Sem região atribuída' || regiao === 'Sem região';
+      optReg.textContent = semRegiao ? `${nome} (Disponível - Sem região)` : `${nome} (Atual: ${regiao})`;
+      selectRegVend.appendChild(optReg);
+    }
   });
 }
 
@@ -1449,6 +1597,7 @@ async function totalPorVendedor(nomeVendedor) {
 
 async function showRegioes2() {
   const selectElement = document.getElementById('rel4-select-regiao');
+  if (!selectElement) return;
   try {
     const resposta = await fetch('/api/regioes');
     const regioes = await resposta.json();
@@ -1461,12 +1610,12 @@ async function showRegioes2() {
       option.textContent = regiao.nome_regiao;
       selectElement.appendChild(option);
     });
-    selectElement.addEventListener('change', (event) => {
+    selectElement.onchange = (event) => {
       const nomeSelecionado = event.target.value;
       if (nomeSelecionado) {
         clientesPorRegiao(nomeSelecionado);
       }
-    });
+    };
   } catch (err) {
     console.error('Erro ao carregar regiões no front-end:', err.message);
   }
@@ -1524,7 +1673,8 @@ async function clientesPorRegiao(nomeRegiao) {
 
 async function showCidades() {
   const selectCidade = document.getElementById("cli-cidade");
-  if (!selectCidade) return;
+  const selectVendCidade = document.getElementById("vend-cidade");
+  if (!selectCidade && !selectVendCidade) return;
 
   try {
     const resposta = await fetch("/api/cidades");
@@ -1534,22 +1684,31 @@ async function showCidades() {
     const cidades = await resposta.json();
     if (!Array.isArray(cidades)) return;
 
-    selectCidade.innerHTML = '<option value="">Selecione uma cidade...</option>';
+    [selectCidade, selectVendCidade].forEach(sel => {
+      if (sel) sel.innerHTML = '<option value="">Selecione uma cidade...</option>';
+    });
 
     cidades.forEach(cidade => {
-      const option = document.createElement("option");
       const id = cidade.id_cidade;
       const nome = cidade.nome;
       if (id !== undefined && nome !== undefined) {
         mapaCidades[id] = nome;
       }
-      option.value = id;
-      option.textContent = nome;
-      selectCidade.appendChild(option);
+      [selectCidade, selectVendCidade].forEach(sel => {
+        if (sel) {
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = nome;
+          sel.appendChild(option);
+        }
+      });
     });
 
     if (listaClientesCache.length > 0) {
       renderizarPainelClientes(listaClientesCache);
+    }
+    if (listaVendedoresCache.length > 0) {
+      renderizarPainelVendedores(listaVendedoresCache);
     }
   } catch (err) {
     console.error("Erro ao carregar cidades no front-end:", err.message);

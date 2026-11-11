@@ -99,6 +99,9 @@
               <input type="text" id="busca-cliente" placeholder="Filtrar por razão social, CNPJ ou cidade...">
             </div>
             <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-nova-regiao">
+                <i data-lucide="map-pin"></i> Nova Região
+              </button>
               <button class="btn btn-secondary" id="btn-transferir-cliente">
                 <i data-lucide="arrow-left-right"></i> Transferir Região
               </button>
@@ -139,6 +142,9 @@
                 <i data-lucide="search"></i>
                 <input type="text" id="busca-vendedor" placeholder="Pesquisar pelo nome do representante...">
               </div>
+              <button class="btn btn-secondary" id="btn-nova-regiao-vend">
+                <i data-lucide="map-pin"></i> Nova Região
+              </button>
               <button class="btn btn-primary" id="btn-novo-vendedor">
                 <i data-lucide="user-plus"></i> Novo Representante
               </button>
@@ -214,7 +220,7 @@
 
             <div class="form-group">
               <label for="ped-produto">Equipamento de Ar Condicionado *</label>
-              <select id="ped-produto" required>
+              <select id="ped-produto">
                 <option value="">Selecione o modelo do catálogo...</option>
               </select>
             </div>
@@ -222,16 +228,38 @@
             <div class="form-group-triple">
               <div class="form-group">
                 <label for="ped-qtd">Quantidade *</label>
-                <input type="number" id="ped-qtd" min="1" value="1" required>
+                <input type="number" id="ped-qtd" min="1" value="1">
               </div>
               <div class="form-group">
                 <label for="ped-preco">Preço Praticado Unitário (R$) *</label>
-                <input type="number" id="ped-preco" step="0.01" min="0" required placeholder="0,00">
+                <input type="number" id="ped-preco" step="0.01" min="0" placeholder="0,00">
               </div>
               <div class="form-group">
                 <label for="ped-comissao">Comissão do Vendedor (%) *</label>
-                <input type="number" id="ped-comissao" step="0.1" min="0" max="100" value="5.0" required>
+                <input type="number" id="ped-comissao" step="0.1" min="0" max="100" value="5.0">
               </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+              <button type="button" class="btn btn-secondary" id="btn-add-item-pedido">
+                <i data-lucide="plus"></i> Adicionar Produto ao Pedido
+              </button>
+            </div>
+
+            <div class="table-responsive" id="container-itens-pedido" style="display: none; margin-bottom: 16px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Equipamento</th>
+                    <th>Qtd.</th>
+                    <th>Preço Unit. (R$)</th>
+                    <th>Comissão (%)</th>
+                    <th>Subtotal (R$)</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-itens-pedido"></tbody>
+              </table>
             </div>
 
             <div class="order-summary-box">
@@ -511,26 +539,48 @@
           <input type="text" id="vend-nome" required placeholder="Ex: Carlos Eduardo Mendes">
         </div>
         <div class="form-group">
-          <label for="vend-doc">CPF ou CNPJ *</label>
-          <input type="text" id="vend-doc" required placeholder="Ex: 000.000.000-00">
+          <label for="vend-email">E-mail Comercial *</label>
+          <input type="email" id="vend-email" required placeholder="representante@centraldear.com.br">
         </div>
         <div class="form-group">
           <label for="vend-tel">Telefone de Contato</label>
           <input type="text" id="vend-tel" placeholder="(00) 00000-0000">
         </div>
         <div class="form-group">
-          <label for="vend-email">E-mail Comercial</label>
-          <input type="email" id="vend-email" placeholder="representante@centraldear.com.br">
-        </div>
-        <div class="form-group">
-          <label for="vend-regiao">Região *</label>
-          <select id="vend-regiao" required>
+          <label for="vend-cidade">Cidade Base *</label>
+          <select id="vend-cidade" required>
             <!--Preenchido via JS-->
           </select>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-close="modal-vendedor">Cancelar</button>
           <button type="submit" class="btn btn-primary">Gravar Representante</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cadastro de Nova Região -->
+  <div class="modal-overlay" id="modal-regiao">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Cadastrar Nova Região</h3>
+        <button class="modal-close" data-close="modal-regiao">&times;</button>
+      </div>
+      <form id="form-nova-regiao" class="form-grid">
+        <div class="form-group">
+          <label for="reg-nome">Nome da Região Comercial *</label>
+          <input type="text" id="reg-nome" required placeholder="Ex: Litoral Norte, Vale do Aço...">
+        </div>
+        <div class="form-group">
+          <label for="reg-vendedor">Representante Responsável (Região Fechada) *</label>
+          <select id="reg-vendedor" required>
+            <option value="">Selecione um representante...</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-regiao">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Região</button>
         </div>
       </form>
     </div>
@@ -545,20 +595,12 @@
       </div>
       <form id="form-novo-produto" class="form-grid">
         <div class="form-group">
-          <label for="prod-nome">Modelo / Equipamento *</label>
+          <label for="prod-nome">Descrição / Modelo do Equipamento *</label>
           <input type="text" id="prod-nome" required placeholder="Ex: Split Hi-Wall 12.000 BTUs Inverter">
-        </div>
-        <div class="form-group">
-          <label for="prod-categoria">Categoria / Capacidade *</label>
-          <input type="text" id="prod-categoria" required placeholder="Ex: Residencial - 12.000 BTUs">
         </div>
         <div class="form-group">
           <label for="prod-preco">Preço de Catálogo (R$) *</label>
           <input type="number" id="prod-preco" step="0.01" min="0" required placeholder="0,00">
-        </div>
-        <div class="form-group">
-          <label for="prod-estoque">Quantidade em Estoque *</label>
-          <input type="number" id="prod-estoque" min="0" value="1" required placeholder="Ex: 10">
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-close="modal-produto">Cancelar</button>
