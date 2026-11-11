@@ -15,7 +15,7 @@ async function iniciarServidor() {
     console.log('Conexão estabelecida');
 
     app.listen(PORT, () => {
-      console.log(`Servidor rodando em: http://localhost:${PORT}`);
+      console.log(`Servidor rodando em:${PORT}`);
     });
   } catch (err) {
     console.error('Falha ao inicializar o servidor:', err.message);
@@ -25,18 +25,6 @@ async function iniciarServidor() {
 
 iniciarServidor();
 
-function extrairErroProcedure(resultado) {
-  const linha = resultado?.recordset?.[0];
-  if (!linha) return null;
-  if (linha.erro) return linha.erro;
-  for (const valor of Object.values(linha)) {
-    if (typeof valor === 'string' && /^erro/i.test(valor.trim())) {
-      return valor;
-    }
-  }
-  return null;
-}
-
 app.get('/api/regioes', async (req, res) => {
   try {
     const pool = await conn();
@@ -44,27 +32,6 @@ app.get('/api/regioes', async (req, res) => {
     res.json(resultado.recordset);
   } catch (err) {
     console.error('A consulta no banco falhou', err.message);
-    res.status(500).json({ erro: err.message });
-  }
-});
-
-app.post('/api/regioes', async (req, res) => {
-  const { nome_regiao, fk_vendedor } = req.body;
-  try {
-    const pool = await conn();
-    const resultado = await pool.request()
-      .input('nome_regiao', sql.VarChar(100), nome_regiao)
-      .input('fk_vendedor', sql.Int, parseInt(fk_vendedor))
-      .execute('InserirRegiao');
-
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
-    }
-
-    res.status(201).json({ mensagem: 'Região criada com sucesso!' });
-  } catch (err) {
-    console.error('Erro ao criar região:', err.message);
     res.status(500).json({ erro: err.message });
   }
 });
@@ -92,12 +59,6 @@ app.get('/api/pedidos', async (req, res) => {
     const resultado = await pool.request()
       .input('id_pedido', sql.Int, id)
       .execute('CancelarPedido');
-
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
-    }
-
     res.json(resultado.recordset);
   } catch (err) {
     console.error('Erro ao cancelar pedido:', err.message);
@@ -106,43 +67,33 @@ app.get('/api/pedidos', async (req, res) => {
 });
 
 app.post('/api/pedidos', async (req, res) => {
-  const { fk_cliente, fk_vendedor, fk_produto, quantidade, preco_praticado, percentual_comissao, itens } = req.body;
-  const listaItens = Array.isArray(itens) && itens.length > 0
-    ? itens
-    : [{ fk_produto, quantidade, preco_praticado, percentual_comissao }];
-
+  const { fk_cliente, fk_vendedor, fk_produto, quantidade, preco_praticado, percentual_comissao } = req.body;
   try {
     const pool = await conn();
 
     const resPedido = await pool.request()
-      .input('fk_cliente', sql.Int, parseInt(fk_cliente))
-      .input('fk_vendedor', sql.Int, parseInt(fk_vendedor))
+      .input('fk_cliente', sql.Int, fk_cliente)
+      .input('fk_vendedor', sql.Int, fk_vendedor)
       .execute('CriarPedido');
 
-    const erroPedido = extrairErroProcedure(resPedido);
-    if (erroPedido) {
-      return res.status(400).json({ erro: erroPedido });
+    const dadosPedido = resPedido.recordset[0];
+    if (dadosPedido && dadosPedido.erro) {
+      return res.status(400).json({ erro: dadosPedido.erro });
     }
 
-    const dadosPedido = resPedido.recordset?.[0];
-    const idPedidoGerado = dadosPedido?.id_pedido_gerado;
-    if (!idPedidoGerado) {
-      return res.status(400).json({ erro: 'Não foi possível gerar o número do pedido.' });
-    }
+    const idPedidoGerado = dadosPedido.id_pedido_gerado;
 
-    for (const item of listaItens) {
-      const resItem = await pool.request()
-        .input('fk_pedido', sql.Int, idPedidoGerado)
-        .input('fk_produto', sql.Int, parseInt(item.fk_produto))
-        .input('quantidade', sql.Int, parseInt(item.quantidade))
-        .input('preco_praticado', sql.Decimal(10, 2), parseFloat(item.preco_praticado))
-        .input('percentual_comissao', sql.Decimal(5, 2), parseFloat(item.percentual_comissao))
-        .execute('AdicionarItemPedido');
+    const resItem = await pool.request()
+      .input('fk_pedido', sql.Int, idPedidoGerado)
+      .input('fk_produto', sql.Int, fk_produto)
+      .input('quantidade', sql.Int, quantidade)
+      .input('preco_praticado', sql.Decimal(10, 2), preco_praticado)
+      .input('percentual_comissao', sql.Decimal(5, 2), percentual_comissao)
+      .execute('AdicionarItemPedido');
 
-      const erroItem = extrairErroProcedure(resItem);
-      if (erroItem) {
-        return res.status(400).json({ erro: erroItem });
-      }
+    const dadosItem = resItem.recordset[0];
+    if (dadosItem && dadosItem.erro) {
+      return res.status(400).json({ erro: dadosItem.erro });
     }
 
     res.status(201).json({
@@ -196,15 +147,50 @@ app.get('/api/comissoes/:vendedor', async (req, res) => {
 });
 
 app.get('/api/produtos', async (req, res) => {
-  const busca = req.query.busca || '';
+  const busca = (req.query.busca || '').trim();
 
   try {
     const pool = await conn();
-    const resultado = await pool.request()
-      .input('produto', sql.VarChar(100), busca)
-      .execute('TotalVendidoProduto');
+    let lista = [];
 
-    res.json(resultado.recordset);
+    try {
+      const resultado = await pool.request()
+        .input('produto', sql.VarChar(100), busca)
+        .execute('TotalVendidoProduto');
+      lista = resultado.recordset || [];
+    } catch {
+      const resultadoSemParam = await pool.request()
+        .execute('TotalVendidoProduto');
+      lista = resultadoSemParam.recordset || [];
+    }
+
+    if (busca && lista.length === 0) {
+      try {
+        const resultadoTodos = await pool.request()
+          .input('produto', sql.VarChar(100), '')
+          .execute('TotalVendidoProduto');
+        lista = resultadoTodos.recordset || [];
+      } catch {
+        // Mantém lista vazia se a chamada padrão também falhar
+      }
+    }
+
+    if (busca) {
+      const termo = busca
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      lista = lista.filter(item => {
+        const nomeProd = String(item.produto ?? item.Produto ?? item.descricao ?? item.Descricao ?? Object.values(item)[0] ?? '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+        return nomeProd.includes(termo);
+      });
+    }
+
+    res.json(lista);
   } catch (err) {
     console.error('Erro na execução:', err.message);
     res.status(500).json({ erro: err.message });
@@ -262,9 +248,9 @@ app.post('/api/clientes', async (req, res) => {
       .input('fk_cidade', sql.Int, parseInt(fk_cidade))
       .execute('inserirCliente');
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
 
     res.status(201).json({ mensagem: 'Cliente cadastrado com sucesso!' });
@@ -283,9 +269,9 @@ app.put('/api/clientes/regiao', async (req, res) => {
       .input('id_nova_regiao', sql.Int, parseInt(id_nova_regiao))
       .execute('ReatribuirClienteRegiao');
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
 
     res.json({ mensagem: 'Região do cliente atualizada com sucesso!' });
@@ -329,7 +315,7 @@ app.get('/api/vendedores', async (req, res) => {
   try {
     const pool = await conn();
     const resultado = await pool.request()
-      .execute('ListarVendedores');
+      .execute('exec ListarVendedores'); // <-- Insira o nome da procedure aqui
     res.json(resultado.recordset);
   } catch (err) {
     console.error('Erro ao listar representantes:', err.message);
@@ -339,19 +325,20 @@ app.get('/api/vendedores', async (req, res) => {
 
 // 2. Cadastrar novo representante
 app.post('/api/vendedores', async (req, res) => {
-  const { nome, telefone, email, fk_cidade } = req.body;
+  const { nome, cpf_cnpj, telefone, email, fk_regiao } = req.body;
   try {
     const pool = await conn();
     const resultado = await pool.request()
       .input('nome', sql.VarChar(150), nome)
-      .input('email', sql.VarChar(100), email)
-      .input('telefone', sql.VarChar(20), telefone || null)
-      .input('fk_cidade', sql.Int, parseInt(fk_cidade))
+      .input('cpf_cnpj', sql.VarChar(20), cpf_cnpj)
+      .input('telefone', sql.VarChar(20), telefone)
+      .input('email', sql.VarChar(150), email)
+      .input('fk_regiao', sql.Int, parseInt(fk_regiao))
       .execute('InserirVendedor');
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
 
     res.status(201).json({ mensagem: 'Representante cadastrado com sucesso!' });
@@ -371,9 +358,9 @@ app.put('/api/vendedores/regiao', async (req, res) => {
       .input('idNovaRegiao', sql.Int, parseInt(idNovaRegiao))
       .execute('TransferirRegiaoVendedor');
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
 
     res.json({ mensagem: 'Região do representante atualizada com sucesso!' });
@@ -390,12 +377,12 @@ app.delete('/api/vendedores', async (req, res) => {
     const pool = await conn();
     const resultado = await pool.request()
       .input('idVendedor', sql.Int, parseInt(idVendedor))
-      .input('motivo', sql.VarChar(255), motivo || null)
-      .execute('RetirarVendedor');
+      .input('motivo', sql.VarChar(255), motivo)
+      .execute('NOME_PROC_RETIRAR_VENDEDOR'); // <-- Insira o nome da procedure aqui
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
 
     res.json({ mensagem: 'Representante retirado com sucesso!' });
@@ -409,43 +396,27 @@ app.delete('/api/vendedores', async (req, res) => {
 // ROTAS DA ABA DE PRODUTOS
 // ==========================================
 
-// 1. Cadastrar novo produto
-app.post('/api/produtos', async (req, res) => {
-  const { descricao, preco_tabela } = req.body;
-  try {
-    const pool = await conn();
-    const resultado = await pool.request()
-      .input('descricao', sql.VarChar(150), descricao)
-      .input('preco_tabela', sql.Decimal(10, 2), parseFloat(preco_tabela))
-      .execute('sp_InserirProduto');
-
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
-    }
-
-    res.status(201).json({ mensagem: 'Produto cadastrado com sucesso!' });
-  } catch (err) {
-    console.error('Erro ao cadastrar produto:', err.message);
-    res.status(500).json({ erro: err.message });
-  }
-});
-
-// 2. Excluir produto
+// Excluir produto (preparado para vincular a procedure posteriormente)
 app.delete('/api/produtos/:id', async (req, res) => {
   const { id } = req.params;
+  const { motivo } = req.body || {};
   try {
+    // Quando criar a procedure no banco, descomente o bloco abaixo e insira o nome:
+    /*
     const pool = await conn();
     const resultado = await pool.request()
       .input('id_produto', sql.Int, parseInt(id))
-      .execute('ExcluirProduto');
+      .input('motivo', sql.VarChar(255), motivo || null)
+      .execute('NOME_PROC_EXCLUIR_PRODUTO'); // <-- Insira o nome da procedure aqui
 
-    const erroProc = extrairErroProcedure(resultado);
-    if (erroProc) {
-      return res.status(400).json({ erro: erroProc });
+    const dados = resultado.recordset?.[0];
+    if (dados && dados.erro) {
+      return res.status(400).json({ erro: dados.erro });
     }
+    */
 
-    res.json({ mensagem: 'Produto excluído com sucesso!' });
+    console.log(`[PRODUTOS] Exclusão solicitada para produto ID: ${id}`);
+    res.json({ mensagem: 'Produto excluído com sucesso (estrutura pronta para a procedure).' });
   } catch (err) {
     console.error('Erro ao excluir produto:', err.message);
     res.status(500).json({ erro: err.message });

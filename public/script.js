@@ -1461,6 +1461,28 @@ function setupBuscaComissoes() {
   }
 }
 
+let listaRel5ProdutosCache = [];
+
+function obterDadosLinhaRel5(item) {
+  const produto = extrairCampo(
+    item,
+    ['produto', 'Produto', 'descricao', 'Descricao', 'nome_produto', 'equipamento'],
+    /prod|descr|equip|nome/i
+  ) ?? '-';
+  const quantidade = extrairCampo(
+    item,
+    ['total_quantidade_vendida', 'quantidade_vendida', 'TotalQuantidade', 'quantidade', 'qtd'],
+    /quant|qtd|unid|vol/i
+  ) ?? 0;
+  const faturamento = extrairCampo(
+    item,
+    ['faturamento_total', 'total_vendido', 'TotalVendido', 'valor_total', 'faturamento'],
+    /fatur|total.*vend|valor|montante/i
+  ) ?? item.faturamento_total ?? 0;
+
+  return { produto, quantidade, faturamento };
+}
+
 function renderizarInformacoes5(dados) {
   const tbody = document.getElementById('tbody-rel5');
   if (!tbody) {
@@ -1478,25 +1500,28 @@ function renderizarInformacoes5(dados) {
   }
   dados.forEach(item => {
     const tr = document.createElement('tr');
+    const { produto, quantidade, faturamento } = obterDadosLinhaRel5(item);
 
-    const valorNumerico = Number(item.faturamento_total);
+    const valorNumerico = Number(faturamento);
     const totalFormatado = !isNaN(valorNumerico)
       ? formatadorMoeda.format(valorNumerico)
-      : item.faturamento_total;
+      : faturamento;
 
     tr.innerHTML = `
-      <td>${item.produto}</td>
-      <td>${item.total_quantidade_vendida}</td>
+      <td>${produto}</td>
+      <td>${quantidade}</td>
       <td>${totalFormatado}</td>
     `;
 
     tbody.appendChild(tr);
   });
 }
+
 async function totalPorProduto(termo = '') {
+  const termoLimpo = String(termo || '').trim();
 
   try {
-    const rota = `/api/produtos?busca=${encodeURIComponent(termo)}`;
+    const rota = `/api/produtos?busca=${encodeURIComponent(termoLimpo)}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
@@ -1505,15 +1530,40 @@ async function totalPorProduto(termo = '') {
 
     const dados = await resposta.json();
 
-    renderizarInformacoes5(dados);
+    if (!termoLimpo && Array.isArray(dados)) {
+      listaRel5ProdutosCache = dados;
+    }
+
+    let listaFinal = Array.isArray(dados) ? dados : [];
+    if (termoLimpo) {
+      const termoNorm = normalizarTexto(termoLimpo);
+      const baseBusca = listaFinal.length > 0 ? listaFinal : listaRel5ProdutosCache;
+      listaFinal = baseBusca.filter(item => {
+        const { produto } = obterDadosLinhaRel5(item);
+        return normalizarTexto(produto).includes(termoNorm);
+      });
+    }
+
+    renderizarInformacoes5(listaFinal);
   } catch (err) {
     console.error('Falha ao obter dados:', err.message);
+    if (termoLimpo && listaRel5ProdutosCache.length > 0) {
+      const termoNorm = normalizarTexto(termoLimpo);
+      const filtrados = listaRel5ProdutosCache.filter(item => {
+        const { produto } = obterDadosLinhaRel5(item);
+        return normalizarTexto(produto).includes(termoNorm);
+      });
+      renderizarInformacoes5(filtrados);
+      return;
+    }
     const tbody = document.getElementById('tbody-rel5');
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="3" class="empty-cell">Erro ao consultar: ${err.message}</td>
-      </tr>
-    `;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" class="empty-cell">Erro ao consultar: ${err.message}</td>
+        </tr>
+      `;
+    }
   }
 }
 function setupBuscaProdutos() {
