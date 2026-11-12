@@ -25,11 +25,123 @@ document.addEventListener("DOMContentLoaded", () => {
   totalPorProduto();
   setupBuscaProdutos();
   setupBuscaVendedores();
+  setupFiltrosDataRelatorios();
   showRegioes2();
   showCidades();
   formCliente();
   carregarDadosNovoPedido();
 });
+
+function obterQueryDatas(idDataInicio, idDataFim) {
+  const dataInicio = document.getElementById(idDataInicio)?.value || "";
+  const dataFim = document.getElementById(idDataFim)?.value || "";
+  const params = new URLSearchParams();
+  if (dataInicio) params.set("dataInicio", dataInicio);
+  if (dataFim) params.set("dataFim", dataFim);
+  const queryString = params.toString();
+  return {
+    dataInicio,
+    dataFim,
+    temFiltroData: Boolean(dataInicio || dataFim),
+    sufixoUrl: queryString ? `?${queryString}` : ""
+  };
+}
+
+function setupFiltrosDataRelatorios() {
+  // Relatório 1: Total vendido por região
+  const rel1Ini = document.getElementById("rel1-data-inicio");
+  const rel1Fim = document.getElementById("rel1-data-fim");
+  const rel1Limpar = document.getElementById("rel1-limpar-datas");
+  const dispararRel1 = () => {
+    const regiao = document.getElementById("rel1-select-regiao")?.value;
+    if (regiao) totalPorRegiao(regiao);
+  };
+  if (rel1Ini) rel1Ini.addEventListener("change", dispararRel1);
+  if (rel1Fim) rel1Fim.addEventListener("change", dispararRel1);
+  if (rel1Limpar) {
+    rel1Limpar.addEventListener("click", () => {
+      if (rel1Ini) rel1Ini.value = "";
+      if (rel1Fim) rel1Fim.value = "";
+      dispararRel1();
+    });
+  }
+
+  // Relatório 2: Total vendido por cliente
+  const rel2Ini = document.getElementById("rel2-data-inicio");
+  const rel2Fim = document.getElementById("rel2-data-fim");
+  const rel2Limpar = document.getElementById("rel2-limpar-datas");
+  const dispararRel2 = () => {
+    const cliente = (document.getElementById("rel2-select-clientes") || document.getElementById("rel2-select-cliente"))?.value;
+    if (cliente) totalPorCliente(cliente);
+  };
+  if (rel2Ini) rel2Ini.addEventListener("change", dispararRel2);
+  if (rel2Fim) rel2Fim.addEventListener("change", dispararRel2);
+  if (rel2Limpar) {
+    rel2Limpar.addEventListener("click", () => {
+      if (rel2Ini) rel2Ini.value = "";
+      if (rel2Fim) rel2Fim.value = "";
+      dispararRel2();
+    });
+  }
+
+  // Relatório 3: Total vendido por vendedor
+  const rel3Ini = document.getElementById("rel3-data-inicio");
+  const rel3Fim = document.getElementById("rel3-data-fim");
+  const rel3Limpar = document.getElementById("rel3-limpar-datas");
+  const dispararRel3 = () => {
+    const termo = document.getElementById("rel3-busca")?.value.trim() || "";
+    if (termo) {
+      totalPorVendedor(termo);
+    }
+  };
+  if (rel3Ini) rel3Ini.addEventListener("change", dispararRel3);
+  if (rel3Fim) rel3Fim.addEventListener("change", dispararRel3);
+  if (rel3Limpar) {
+    rel3Limpar.addEventListener("click", () => {
+      if (rel3Ini) rel3Ini.value = "";
+      if (rel3Fim) rel3Fim.value = "";
+      dispararRel3();
+    });
+  }
+
+  // Relatório 5: Total vendido por produto
+  const rel5Ini = document.getElementById("rel5-data-inicio");
+  const rel5Fim = document.getElementById("rel5-data-fim");
+  const rel5Limpar = document.getElementById("rel5-limpar-datas");
+  const dispararRel5 = () => {
+    const termo = document.getElementById("rel5-busca")?.value.trim() || "";
+    totalPorProduto(termo);
+  };
+  if (rel5Ini) rel5Ini.addEventListener("change", dispararRel5);
+  if (rel5Fim) rel5Fim.addEventListener("change", dispararRel5);
+  if (rel5Limpar) {
+    rel5Limpar.addEventListener("click", () => {
+      if (rel5Ini) rel5Ini.value = "";
+      if (rel5Fim) rel5Fim.value = "";
+      dispararRel5();
+    });
+  }
+
+  // Relatório 6: Extrato de comissões
+  const rel6Ini = document.getElementById("rel6-data-inicio");
+  const rel6Fim = document.getElementById("rel6-data-fim");
+  const rel6Limpar = document.getElementById("rel6-limpar-datas");
+  const dispararRel6 = () => {
+    const termo = document.getElementById("rel6-busca")?.value.trim() || "";
+    if (termo) {
+      totalComissaoVendedor(termo);
+    }
+  };
+  if (rel6Ini) rel6Ini.addEventListener("change", dispararRel6);
+  if (rel6Fim) rel6Fim.addEventListener("change", dispararRel6);
+  if (rel6Limpar) {
+    rel6Limpar.addEventListener("click", () => {
+      if (rel6Ini) rel6Ini.value = "";
+      if (rel6Fim) rel6Fim.value = "";
+      dispararRel6();
+    });
+  }
+}
 
 function setupMenuMobile() {
   const sidebar = document.querySelector(".sidebar");
@@ -440,7 +552,7 @@ function setupCalculoPedido() {
 
 async function removerProdutoInterface(idProduto, nomeProduto) {
   if (!confirm(`Deseja realmente excluir o produto "${nomeProduto}"?`)) {
-    return;
+    return false;
   }
 
   try {
@@ -449,16 +561,19 @@ async function removerProdutoInterface(idProduto, nomeProduto) {
     });
     const dados = await resposta.json().catch(() => ({}));
 
-    if (!resposta.ok) {
-      throw new Error(dados.erro || `Status ${resposta.status}`);
+    if (!resposta.ok || dados.naoExcluido) {
+      alert(dados.erro || `Aviso: O produto "${nomeProduto}" não foi excluído pois já foi comprado anteriormente em um pedido.`);
+      return false;
     }
 
     await carregarDadosNovoPedido();
     await totalPorProduto();
     alert(`Produto "${nomeProduto}" excluído do banco com sucesso!`);
+    return true;
   } catch (err) {
     console.error("Falha ao excluir produto:", err.message);
     alert("Erro ao excluir produto: " + err.message);
+    return false;
   }
 }
 
@@ -774,9 +889,11 @@ function setupModais() {
         return;
       }
 
-      await removerProdutoInterface(id, nome);
-      if (modalExcluirProd) modalExcluirProd.classList.remove("active");
-      formExcluirProduto.reset();
+      const excluiu = await removerProdutoInterface(id, nome);
+      if (excluiu) {
+        if (modalExcluirProd) modalExcluirProd.classList.remove("active");
+        formExcluirProduto.reset();
+      }
     });
   }
 
@@ -945,9 +1062,10 @@ function renderizarInformacoes(dados) {
 }
 
 async function totalPorRegiao(nomeRegiao) {
+  const { sufixoUrl } = obterQueryDatas("rel1-data-inicio", "rel1-data-fim");
 
   try {
-    const rota = `/api/regioes/${encodeURIComponent(nomeRegiao)}`;
+    const rota = `/api/regioes/${encodeURIComponent(nomeRegiao)}${sufixoUrl}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
@@ -1356,9 +1474,10 @@ function renderizarInformacoes2(clientes) {
 }
 
 async function totalPorCliente(nomeCliente) {
+  const { sufixoUrl } = obterQueryDatas("rel2-data-inicio", "rel2-data-fim");
 
   try {
-    const rota = `/api/clientes/${encodeURIComponent(nomeCliente)}`;
+    const rota = `/api/clientes/${encodeURIComponent(nomeCliente)}${sufixoUrl}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
@@ -1424,9 +1543,10 @@ function renderizarInformacoes6(dados) {
 }
 
 async function totalComissaoVendedor(nomeVendedor) {
+  const { sufixoUrl } = obterQueryDatas("rel6-data-inicio", "rel6-data-fim");
 
   try {
-    const rota = `/api/comissoes/${encodeURIComponent(nomeVendedor)}`;
+    const rota = `/api/comissoes/${encodeURIComponent(nomeVendedor)}${sufixoUrl}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
@@ -1517,11 +1637,18 @@ function renderizarInformacoes5(dados) {
   });
 }
 
-async function totalPorProduto(termo = '') {
-  const termoLimpo = String(termo || '').trim();
+async function totalPorProduto(termo) {
+  const valorInput = termo !== undefined ? termo : (document.getElementById('rel5-busca')?.value || '');
+  const termoLimpo = String(valorInput || '').trim();
+  const { dataInicio, dataFim, temFiltroData } = obterQueryDatas("rel5-data-inicio", "rel5-data-fim");
+
+  const params = new URLSearchParams();
+  params.set("busca", termoLimpo);
+  if (dataInicio) params.set("dataInicio", dataInicio);
+  if (dataFim) params.set("dataFim", dataFim);
 
   try {
-    const rota = `/api/produtos?busca=${encodeURIComponent(termoLimpo)}`;
+    const rota = `/api/produtos?${params.toString()}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {
@@ -1530,14 +1657,14 @@ async function totalPorProduto(termo = '') {
 
     const dados = await resposta.json();
 
-    if (!termoLimpo && Array.isArray(dados)) {
+    if (!termoLimpo && !temFiltroData && Array.isArray(dados)) {
       listaRel5ProdutosCache = dados;
     }
 
     let listaFinal = Array.isArray(dados) ? dados : [];
     if (termoLimpo) {
       const termoNorm = normalizarTexto(termoLimpo);
-      const baseBusca = listaFinal.length > 0 ? listaFinal : listaRel5ProdutosCache;
+      const baseBusca = (listaFinal.length > 0 || temFiltroData) ? listaFinal : listaRel5ProdutosCache;
       listaFinal = baseBusca.filter(item => {
         const { produto } = obterDadosLinhaRel5(item);
         return normalizarTexto(produto).includes(termoNorm);
@@ -1547,7 +1674,7 @@ async function totalPorProduto(termo = '') {
     renderizarInformacoes5(listaFinal);
   } catch (err) {
     console.error('Falha ao obter dados:', err.message);
-    if (termoLimpo && listaRel5ProdutosCache.length > 0) {
+    if (termoLimpo && !temFiltroData && listaRel5ProdutosCache.length > 0) {
       const termoNorm = normalizarTexto(termoLimpo);
       const filtrados = listaRel5ProdutosCache.filter(item => {
         const { produto } = obterDadosLinhaRel5(item);
@@ -1628,9 +1755,10 @@ function renderizarInformacoes3(vendedores) {
 }
 
 async function totalPorVendedor(nomeVendedor) {
+  const { sufixoUrl } = obterQueryDatas("rel3-data-inicio", "rel3-data-fim");
 
   try {
-    const rota = `/api/vendedores/${encodeURIComponent(nomeVendedor)}`;
+    const rota = `/api/vendedores/${encodeURIComponent(nomeVendedor)}${sufixoUrl}`;
     const resposta = await fetch(rota);
 
     if (!resposta.ok) {

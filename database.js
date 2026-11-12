@@ -6,7 +6,9 @@ const config = {
   password: process.env.DATABASE_PASSWORD,
   server: process.env.DATABASE_URL,
   database: process.env.DATABASE_NAME,
-  port: parseInt(process.env.DATABASE_PORT),
+  port: parseInt(process.env.DATABASE_PORT) || 1433,
+  connectionTimeout: 60000,
+  requestTimeout: 60000,
   options: {
     encrypt: true,
     trustServerCertificate: true
@@ -16,13 +18,14 @@ const config = {
 let pool;
 
 async function conn() {
-  if (pool) return pool;
+  if (pool && pool.connected) return pool;
 
   try {
     pool = await sql.connect(config);
     console.log('Conexão com o banco de dados bem sucedida!');
     return pool;
   } catch (err) {
+    pool = null;
     console.error('Conexão com o banco de dados falhou.', err.message);
     throw err;
   }

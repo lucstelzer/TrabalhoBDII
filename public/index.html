@@ -289,11 +289,26 @@
               <h3>Relatório 1: Total vendido por região</h3>
               <p class="subtitle">Este relatório tem como objetivo mostrar o valor total vendido por região.</p>
             </div>
-            <div class="form-inline">
-              <label for="rel1-select-regiao">Selecione a Região:</label>
-              <select id="rel1-select-regiao">
-                <!-- Preenchido via JS -->
-              </select>
+            <div class="report-filters">
+              <div class="form-inline">
+                <label for="rel1-select-regiao">Selecione a Região:</label>
+                <select id="rel1-select-regiao">
+                  <!-- Preenchido via JS -->
+                </select>
+              </div>
+              <div class="date-filter-group">
+                <div class="date-field">
+                  <label for="rel1-data-inicio">De:</label>
+                  <input type="date" id="rel1-data-inicio">
+                </div>
+                <div class="date-field">
+                  <label for="rel1-data-fim">Até:</label>
+                  <input type="date" id="rel1-data-fim">
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="rel1-limpar-datas">
+                  Limpar Datas
+                </button>
+              </div>
             </div>
           </div>
 
@@ -323,11 +338,26 @@
               <h3>Relatório 2: Total vendido por cliente</h3>
               <p class="subtitle">Este relatório tem como objetivo mostrar o valor total vendido por cliente.</p>
             </div>
-            <div class="form-inline">
-              <label for="rel2-select-clientes">Selecione o cliente:</label>
-              <select id="rel2-select-clientes">
-                <!-- Preenchido via JS -->
-              </select>
+            <div class="report-filters">
+              <div class="form-inline">
+                <label for="rel2-select-clientes">Selecione o cliente:</label>
+                <select id="rel2-select-clientes">
+                  <!-- Preenchido via JS -->
+                </select>
+              </div>
+              <div class="date-filter-group">
+                <div class="date-field">
+                  <label for="rel2-data-inicio">De:</label>
+                  <input type="date" id="rel2-data-inicio">
+                </div>
+                <div class="date-field">
+                  <label for="rel2-data-fim">Até:</label>
+                  <input type="date" id="rel2-data-fim">
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="rel2-limpar-datas">
+                  Limpar Datas
+                </button>
+              </div>
             </div>
           </div>
 
@@ -356,9 +386,24 @@
               <h3>Relatório 3: Vendas por Representante</h3>
               <p class="subtitle">Pesquise por qualquer trecho do nome do representante</p>
             </div>
-            <div class="search-box">
-              <i data-lucide="search"></i>
-              <input type="text" id="rel3-busca" placeholder="Digite o nome (ex: Carlos, Roberto)...">
+            <div class="report-filters">
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="rel3-busca" placeholder="Digite o nome (ex: Carlos, Roberto)...">
+              </div>
+              <div class="date-filter-group">
+                <div class="date-field">
+                  <label for="rel3-data-inicio">De:</label>
+                  <input type="date" id="rel3-data-inicio">
+                </div>
+                <div class="date-field">
+                  <label for="rel3-data-fim">Até:</label>
+                  <input type="date" id="rel3-data-fim">
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="rel3-limpar-datas">
+                  Limpar Datas
+                </button>
+              </div>
             </div>
           </div>
           <div class="table-responsive">
@@ -417,9 +462,24 @@
               <h3>Relatório 5: Total vendido por produto</h3>
               <p class="subtitle">Ranking de faturamento e volume por modelo de climatizador</p>
             </div>
-            <div class="search-box">
-              <i data-lucide="search"></i>
-              <input type="text" id="rel5-busca" placeholder="Pesquisar equipamento (ex: Split, Inverter)...">
+            <div class="report-filters">
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="rel5-busca" placeholder="Pesquisar equipamento (ex: Split, Inverter)...">
+              </div>
+              <div class="date-filter-group">
+                <div class="date-field">
+                  <label for="rel5-data-inicio">De:</label>
+                  <input type="date" id="rel5-data-inicio">
+                </div>
+                <div class="date-field">
+                  <label for="rel5-data-fim">Até:</label>
+                  <input type="date" id="rel5-data-fim">
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="rel5-limpar-datas">
+                  Limpar Datas
+                </button>
+              </div>
             </div>
           </div>
           <div class="table-responsive">
@@ -447,9 +507,24 @@
               <h3>Relatório 6: Extrato Individual de Comissões</h3>
               <p class="subtitle">Detalhamento item a item por pedido formalizado</p>
             </div>
-            <div class="search-box">
-              <i data-lucide="search"></i>
-              <input type="text" id="rel6-busca" placeholder="Digite o nome do representante...">
+            <div class="report-filters">
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="rel6-busca" placeholder="Digite o nome do representante...">
+              </div>
+              <div class="date-filter-group">
+                <div class="date-field">
+                  <label for="rel6-data-inicio">De:</label>
+                  <input type="date" id="rel6-data-inicio">
+                </div>
+                <div class="date-field">
+                  <label for="rel6-data-fim">Até:</label>
+                  <input type="date" id="rel6-data-fim">
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="rel6-limpar-datas">
+                  Limpar Datas
+                </button>
+              </div>
             </div>
           </div>
 

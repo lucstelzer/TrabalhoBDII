@@ -620,6 +620,51 @@ body {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
+.report-filters {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.date-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.date-field input[type="date"] {
+  padding: 7px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.date-field input[type="date"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
 .form-grid {
   display: flex;
   flex-direction: column;
